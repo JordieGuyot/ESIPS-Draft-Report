@@ -1,0 +1,59 @@
+\subsection{Limitations of existing systems and research gaps}
+
+\subsubsection{Imperfect substrates demand architectures that expose, not bury, their flaws}
+
+No open scholarly knowledge graph is a ground truth, and the architecture
+chosen to consume one determines whether its imperfections remain visible
+or are absorbed into latent representations.  Citation recall across the
+major indexes varies by a factor of three, from 88\% in Google Scholar to
+28\% in OpenCitations' COCI, with systematic disciplinary bias across
+providers \cite{martinmartin2021coverage}.  OpenAlex itself, the substrate
+this thesis ingests, retains references to deleted works and does not
+systematically index non-source references \cite{culbert2025reference},
+and over sixty percent of its journal articles lack complete institutional
+metadata, with Chinese institutions particularly under-represented
+\cite{zhang2024missing}.  Single-vector dense retrieval and opaque RAG
+pipelines compound these gaps by collapsing them into representations the
+user cannot interrogate.  A KG-native architecture instead surfaces
+missing affiliations, contested author identities and shifting topic
+labels as queryable structure, making them features of retrieval rather
+than latent corruption. \\
+
+\subsubsection{No method, system or benchmark addresses the joint task this thesis targets}
+\label{sec:lr-gap}
+
+Each thread of prior work identifies a single-axis gap, and the thesis's
+contribution lies in their unaddressed intersection.  Methodologically,
+BM25 is lexically brittle, dense retrievers miss roughly a quarter of
+relevant scientific results (Section~\ref{sec:lr-dense}), citation-graph
+methods are conceptually well-matched but unbenchmarked on
+natural-language scholarly queries (Section~\ref{sec:lr-graph}), and
+structured-query translation has been evaluated only on
+template-generated scholarly graphs (Section~\ref{sec:lr-nl2q}).  At the
+system level, deployed engines split cleanly into text-centric tools
+that treat the citation graph as a ranking signal at most and
+graph-native discovery tools that abandon natural-language entry
+entirely; the LLM-augmented systems consume both as black boxes
+(Sections~\ref{subsec:traditional-search}--\ref{subsec:llm-agentic}).
+At the benchmark level, no test set jointly exercises natural-language
+scientific queries, structured-query translation, and graph traversal
+over a live scholarly substrate.  These three gaps converge on a single
+absence: no current system, on any current benchmark, with any
+documented method combination, performs the joint task that a KG-native
+hybrid scholarly retrieval pipeline would. \\
+
+\subsubsection{The thesis's contribution}
+
+This thesis addresses that absence with a system that uses an LLM to
+translate natural-language questions into a structured intermediate
+representation, compiles that representation deterministically into
+optimised Cypher over an OpenAlex-derived schema, and combines BM25,
+dense and graph-traversal evidence under a single ranking regime.  
+Architecturally, this treats the knowledge graph as the
+primary semantic interface rather than an auxiliary feature store, with
+BM25 and dense retrieval acting as complementary lexical and semantic
+lenses on the same graph-anchored universe of works, authors, venues and
+citations.  The agentic and RAG systems surveyed in
+Section~\ref{subsec:llm-agentic} are users of such an architecture rather
+than competitors to it, consuming scholarly retrieval as a tool rather
+than providing it as a substrate.

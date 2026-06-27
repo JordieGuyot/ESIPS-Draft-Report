@@ -1,0 +1,27 @@
+\subsection{History of Scholarly Search}
+\label{sec:history}
+
+Scholarly retrieval has navigated a recurring tension between structured
+indexing (controlled vocabularies and typed metadata) and free-text retrieval
+(full-content indexing), with each era layering onto the last rather than
+swinging between them. Pre-digital catalogues and the early digital
+bibliographic databases (MEDLARS, INSPEC, PsycINFO) were anchored to
+controlled vocabularies and Boolean intermediaries, whose dominant failure
+mode Lancaster diagnosed as vocabulary mismatch rather than algorithmic
+weakness~\cite{lancaster1969medlars}. The web era sidestepped that mismatch by
+indexing full text at scale through Google Scholar, Scopus, and BM25- and
+PageRank-driven
+ranking~\cite{robertson1994bm25,brin1998pagerank,falagas2008comparison}, at
+the cost of the disciplined precision that controlled vocabularies had
+guaranteed. Modern infrastructure (Semantic Scholar, OpenAlex,
+OpenCitations) partially reintroduced typed metadata as a navigable layer over
+web-scale
+text~\cite{ammar2018construction,priem2022openalex,peroni2020opencitations},
+and the post-2022 generation of LLM- and embedding-driven tools now sits on
+top of those graphs. Each generation has therefore inherited the substrate
+of the last, addressed its dominant limitation, and introduced a new one. The
+methods examined in Section~\ref{sec:recent-advances}, namely dense
+retrieval, graph augmentation, natural-language-to-structured-query
+translation, and query reformulation, are best read as the field's current
+attempt to reconcile these two paradigms rather than choose between them,
+and this thesis takes that reconciliation as its starting point.

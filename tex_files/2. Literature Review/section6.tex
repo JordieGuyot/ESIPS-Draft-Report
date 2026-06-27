@@ -1,0 +1,55 @@
+\subsection{Benchmarks for scholarly retrieval}
+\label{sec:lr-bench}
+
+\begin{table*}[!t]
+\centering\small
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{@{}lllllll@{}}
+\toprule
+\textbf{Benchmark} & \textbf{Corpus} & \textbf{Task} & \textbf{Query style} & \textbf{Size} & \textbf{Metrics} & \textbf{Scope} \\
+\midrule
+BEIR            & Heterogeneous   & Retrieval          & NL / keyword   & 18 datasets     & nDCG@10         & General IR \\
+MS MARCO        & Web passages    & Passage retrieval  & Web queries    & $\sim$1M q       & MRR@10, nDCG    & General IR \\
+TREC DL         & MS MARCO        & Passage/doc retr.  & Web queries    & $\sim$50 topics  & nDCG@10         & General IR \\
+LoTTE           & StackExchange   & Retrieval (OOD)    & NL question    & 5 topics         & Success@5       & General IR \\
+SciDocs         & Sem.\ Scholar   & Paper embed.\ eval & Paper-as-query & 7 tasks          & MAP, nDCG       & Scholarly \\
+CSFCube         & S2ORC (CS)      & Faceted retrieval  & Paper + facet  & 50 queries       & nDCG, R-Prec.   & Scholarly \\
+LitSearch       & ACL + ICLR      & Literature search  & NL question    & 597 queries      & Recall@k        & Scholarly \\
+SciFact         & Biomed.\ abs.   & Claim verification & NL claim       & 1{,}409 claims   & F1              & Biomedical \\
+NFCorpus        & NF + PubMed     & Medical retrieval  & Lay NL         & 3{,}244 queries  & MAP, nDCG       & Biomedical \\
+TREC-COVID      & CORD-19         & Ad-hoc retrieval   & Topic + narr.  & 50 topics        & nDCG@10, bpref  & Biomedical \\
+TREC Genomics   & Biomed.\ text   & Passage retrieval  & NL question    & 28 topics        & MAP             & Biomedical \\
+DBLP-QuAD       & DBLP KG         & NL $\to$ SPARQL    & NL question    & 10{,}000 pairs   & EM, F1          & KG-native \\
+SciQA           & ORKG            & NL $\to$ SPARQL    & NL question    & 2{,}565 pairs    & EM, F1          & KG-native \\
+\bottomrule
+\end{tabular}
+\caption{Benchmarks closest to the KG-native scholarly retrieval regime, grouped by the axis each exercises. None jointly exercises NL-to-structured-query translation and ranked-paper retrieval over a typed graph.}
+\label{tab:benchmarks}
+\end{table*}
+
+No existing benchmark jointly evaluates the two operations a
+KG-native scholarly retrieval pipeline must perform: translation of a
+natural-language question into a structured query over a typed graph,
+and ranking of the retrieved papers by relevance.
+Table~\ref{tab:benchmarks} summarises the thirteen benchmarks closest
+to this regime. They split into three clusters, each exercising one
+axis only. General-domain IR benchmarks
+(BEIR~\cite{thakur2021beir}, MS~MARCO~\cite{msmarco},
+TREC~DL~\cite{trecdl2019,trecdl2020},
+LoTTE~\cite{santhanam2022colbertv2}) supply the training corpora and
+evaluation conventions inherited by every dense retriever in
+Section~\ref{sec:lr-dense}, but they are not scholarly. Scientific
+retrieval benchmarks
+(SciDocs~\cite{cohan2020specter}, CSFCube~\cite{mysore2021csfcube},
+LitSearch~\cite{ajith2024litsearch}, and the biomedical
+SciFact~\cite{scifact}, NFCorpus~\cite{nfcorpus},
+TREC-COVID~\cite{voorhees2021treccovid}, TREC
+Genomics~\cite{trecgen}) probe ranking over scientific text but
+assume a flat document index, never a typed graph. KG-native
+benchmarks (DBLP-QuAD~\cite{banerjee2023dblpquad},
+SciQA~\cite{auer2023sciqa}) score NL-to-SPARQL translation but, as
+Section~\ref{sec:lr-nl2q} showed, rely on template-generated
+queries with assumed gold entity linking, and they evaluate query
+correctness rather than the relevance of the resulting paper list.
+
+\FloatBarrier

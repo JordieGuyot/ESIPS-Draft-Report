@@ -1,0 +1,36 @@
+# LaTeX build artifacts
+*.aux
+*.log
+*.out
+*.toc
+*.lof
+*.lot
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.bbl
+*.blg
+*.run.xml
+*.bcf
+*.nav
+*.snm
+*.vrb
+*.xdv
+*.dvi
+*.idx
+*.ilg
+*.ind
+
+# Built PDF (regenerated from source)
+main.pdf
+
+# Editor / OS
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Local backup directory
+.dedup_backup/
+
+# Stray image (not referenced from the build)
+image.png

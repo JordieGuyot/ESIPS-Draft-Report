@@ -1,0 +1,149 @@
+\subsection{Current available KGs and pipelines}
+
+\newcolumntype{P}[1]{>{\raggedright\arraybackslash}p{#1}}
+
+\begin{table*}[!t]
+\centering
+\caption{Scholarly knowledge graphs compared on infrastructure dimensions. Coverage figures are snapshot-specific and use units native to each system (triples for RDF graphs, works/papers for property graphs, citation links for OpenCitations). Licences reflect data, not code.}
+\label{tab:kg-infra}
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{P{2.4cm}P{2.8cm}P{2.4cm}P{2.5cm}P{2.2cm}P{1.4cm}}
+\hline
+\textbf{System} & \textbf{Coverage (snapshot)} & \textbf{Schema} & \textbf{Query interface} & \textbf{KGE released?} & \textbf{Licence} \\
+\hline
+MAKG~\cite{farber2019makg,farber2022makgenhanced} & 8\,B triples (2019); 239\,M papers (2022) & RDF, SPAR + Dublin Core + PRISM + FOAF & SPARQL, Zenodo dump & Yes (TransE\slash TransR\slash DistMult\slash ComplEx\slash RESCAL) & ODC-BY \\
+OpenAlex~\cite{priem2022openalex} & 209\,M works (2022) & JSON, bespoke; Concepts hierarchy & REST, S3 dump & No official & CC0 \\
+SemOpenAlex~\cite{farber2023semopenalex} & 26\,B triples, 249\,M works (2023) & RDF, SPAR + SKOS + custom \texttt{soa:} & SPARQL, AWS S3 TriG & Yes (TransE\slash DistMult\slash ComplEx\slash GraphSAGE\slash GAT) & CC0 \\
+S2AG~\cite{kinney2023semanticscholar,ammar2018construction} & 225\,M papers, 2.8\,B edges (2025) & Property graph, JSON & REST Graph API & SPECTER\slash SPECTER2 (doc embeddings) & ODC-BY \\
+OAG / OAG-Bench~\cite{zhang2019oag,zhang2024oagbench} & 0.7\,B entities, 2\,B relations (v1, 2019) & JSON-line property graph & Bulk download & OAG-BERT (LM, not KGE) & Research-only \\
+AceKG~\cite{wang2018acekg} & 3.13\,B triples, 62\,M papers (2018, static) & RDF, bespoke vocabulary & Turtle dump only & Only as baselines & Free access \\
+ORKG~\cite{jaradeh2019orkg} & Curated; small scale & Contribution nodes, Neo4j + RDF export & REST, SPARQL & None published & CC BY-SA \\
+OpenCitations~\cite{peroni2020opencitations,massari2024ocmeta,heibi2024ocindex} & 2\,B+ citation links, 98\,M+ works (2024) & RDF, SPAR + PROV-O & SPARQL, REST, Figshare & None official & CC0 \\
+\hline
+\end{tabular}
+\end{table*}
+
+The existing landscape of scholarly retrieval systems stratifies along three
+axes. Retrieval is either text-centric or graph-native, queries are either
+natural language or structured, and evaluation maturity varies widely across
+systems. No current system sits at
+the intersection a KG-native hybrid pipeline requires. The three subsubsections
+below substantiate this from three angles, namely the data layer
+(Section~\ref{subsec:kg-infrastructure}), the traditional search engines built
+on it (Section~\ref{subsec:traditional-search}), and the LLM-augmented
+assistants that consume both (Section~\ref{subsec:llm-agentic}).
+
+\subsubsection{Scholarly knowledge graphs as data infrastructure}
+\label{subsec:kg-infrastructure}
+
+OpenAlex is the canonical ingestion target for any new scholarly KG, but its
+non-RDF design forces stack-level choices that shape everything downstream.
+Microsoft Academic Graph's retirement at the end of 2021 left
+OpenAlex~\cite{priem2022openalex} as the de facto open successor at scale,
+linking 209\,M works to 213\,M disambiguated authors via 65k Wikidata-backed
+concepts. There is no SPARQL endpoint, no reuse of SPAR ontologies, and the
+JSON/REST API is the canonical interface. SemOpenAlex~\cite{farber2023semopenalex}
+exists precisely to close that gap, re-lifting OpenAlex monthly into a
+26-billion-triple RDF graph with 13 entity types, 87 relations, and released
+embeddings on Zenodo. The MAKG lineage~\cite{farber2019makg,farber2022makgenhanced}
+supplies the historical RDF anchor that SemOpenAlex inherits. A second cluster of property-graph systems comprises
+S2AG~\cite{kinney2023semanticscholar} (which extends Ammar et al.'s literature
+graph~\cite{ammar2018construction}), OAG~\cite{zhang2019oag,zhang2024oagbench},
+and AceKG~\cite{wang2018acekg}. Two further systems take different design
+priorities. ORKG~\cite{jaradeh2019orkg} provides curated semantic depth, and
+OpenCitations~\cite{peroni2020opencitations,heibi2019coci,massari2024ocmeta,heibi2024ocindex}
+models citations as first-class resources.
+Table~\ref{tab:kg-infra} compares the eight systems on coverage, schema, query
+interface, embeddings, and licence.
+
+None of these systems defines a retrieval task, which is why this thesis
+treats them as substrate rather than baseline.
+OAG-Bench~\cite{zhang2024oagbench} comes closest but evaluates graph-mining
+tasks (name disambiguation, paper source tracing) rather than end-user search.
+Reported counts also drift substantially across snapshots. S2AG and OpenAlex
+have moved since their primary publications, and ORKG publishes no content
+counts in the peer-reviewed paper, so version-specific citation is the only
+defensible practice. The data layer therefore supplies a substrate, not a
+baseline, and this thesis ingests OpenAlex into a custom typed graph rather
+than consuming any of these systems as-is.
+
+\subsubsection{Traditional scholarly search engines}
+\label{subsec:traditional-search}
+
+Today's deployed search engines practise text-centric and citation-graph
+retrieval separately, and no widely-used system seriously combines them under
+a single ranking regime. Text-centric engines dominate daily use. Google
+Scholar is the largest by record count, with roughly 389\,M
+records~\cite{gusenbauer2019gs} and the highest citation coverage in independent
+comparison~\cite{martinmartin2021coverage}, but its 1{,}000-result cap, weak
+Boolean support and opaque ranking rule it out as a systematic-review
+engine~\cite{gusenbauerhaddaway2020}. Among major open-access alternatives at
+100\,M+-document scale, Dimensions~\cite{herzog2020dimensions},
+Lens~\cite{jefferson2018lens} and OpenAlex-native
+search~\cite{priem2022openalex} offer Boolean keyword search with faceted
+concept filters, while CORE~\cite{knoth2012core,knoth2023core} prioritises
+bulk OA full-text aggregation and underpins LLM pipelines such as
+OpenScholar~\cite{asai2024openscholar}. None of these engines exposes the
+citation graph as a queryable structure.
+
+Embedding-based retrieval is most developed in Semantic Scholar, which layers
+SPECTER~\cite{cohan2020specter} and SPECTER2~\cite{singh2023scirepeval}
+citation-informed transformer embeddings over its literature
+graph~\cite{ammar2018construction,kinney2023semanticscholar}, with
+SciNCL~\cite{ostendorff2022scincl} a stronger contrastive successor on
+SciDocs. Scite~\cite{nicholson2021scite} sits closest to a text-plus-citation
+hybrid, classifying citation statements as supporting, contrasting or
+mentioning via a SciBERT classifier. A third-party
+audit~\cite{bakker2023evaluating} reports F-measures between 0 and 0.58
+against the vendor's claimed 80\%+ precision. The gap illustrates the broader
+reliability problem with vendor-reported numbers in this cluster.
+
+Graph-native discovery tools treat seed-paper exploration as a UI problem
+rather than a retrieval task. Connected
+Papers~\cite{smolyansky2020announcing} computes co-citation and
+bibliographic-coupling similarity over a $\sim$50k-candidate Semantic Scholar
+subset and displays a force-directed graph. Research
+Rabbit~\cite{researchrabbit} iteratively expands collections over Semantic
+Scholar and OpenAlex. Inciteful~\cite{inciteful_docs}, since 2023 primarily
+OpenAlex-backed, builds depth-2 local citation graphs and runs PageRank and
+link prediction. None of the three has a peer-reviewed benchmark. Evaluations
+are confined to library-guide and scientometric-blog
+commentary~\cite{tay2021literaturemapping}. The absence of formal evaluation
+is itself a design-space observation. The scientometric community has not yet
+settled on a benchmark for graph-native scholarly discovery.
+
+Provenance concentrates risk across this whole layer. Crossref, PubMed and
+the legacy MAG feed OpenAlex~\cite{priem2022openalex} and Semantic
+Scholar~\cite{kinney2023semanticscholar}, which in turn feed Connected
+Papers, Research Rabbit, Inciteful, and most of the LLM-augmented systems in
+Section~\ref{subsec:llm-agentic}. Citation coverage inherited from Crossref
+and MAG is incomplete~\cite{visser2021largescale}, and OpenAlex's and
+Semantic Scholar's concept and topic taxonomies both trace back to MAG's
+field-of-study classifier. Any new system built on this stack inherits the
+same gaps.
+
+\subsubsection{LLM-augmented and agentic scholarly search systems}
+\label{subsec:llm-agentic}
+
+Layered on top of these retrieval substrates, a different category of system
+has emerged since late 2023 that consumes them rather than competing with
+them. These LLM-augmented assistants differ from the retrieval engines above
+in output contract rather than architecture. They produce long-form
+citation-backed answers via retrieval-augmented generation rather than ranked
+paper lists. Representative
+open systems include OpenScholar~\cite{asai2024openscholar},
+PaperQA2~\cite{skarlinski2024paperqa2} and Ai2 Scholar
+QA~\cite{singh2025ai2scholarqa}, each combining dense or hybrid retrieval
+over scholarly corpora with multi-stage LLM synthesis, with ORKG
+Ask~\cite{oelen2024orkgask,oelen2026orkgask} the closest neuro-symbolic
+relative. Commercial SaaS equivalents (Elicit, Consensus, Undermind) sit
+alongside these but lack peer-reviewed primary papers. Evaluation here is
+dominated by long-form QA benchmarks such as LitQA2 within
+LAB-Bench~\cite{laurent2024labbench} and ScholarQABench, measuring answer
+correctness and citation faithfulness rather than retrieval quality. These
+systems are included for landscape completeness rather than as direct
+comparators, and the benchmarks they rely on, alongside those used by the
+retrieval systems above, are surveyed in the next section.
+
+\FloatBarrier
