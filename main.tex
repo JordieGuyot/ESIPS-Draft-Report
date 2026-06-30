@@ -21,11 +21,11 @@
 
 % \input{tex_files/1. Introduction/}
 
-% \input{tex_files/2. Literature Review/lit review.tex}
+\input{tex_files/2. Literature Review/lit review.tex}
 
 \input{tex_files/3. Research Design/research_design.tex}
 
-% \input{tex_files/4. Data and Results/}
+\input{tex_files/4. Data and Results/data_and_results.tex}
 
 % \input{tex_files/5. Analysis and Discussion/}
 
@@ -37,12 +37,10 @@
 
 \onecolumn
 
-% --- Bibliography & appendices disabled: research-design-only build. ---
-% Research design has no \cite commands yet, so the old main.bbl would
-% otherwise append ~93 uncited references. Re-enable when citations and
-% the appendix files are wired back in.
-% \bibliographystyle{ieeetr}
-% \bibliography{bibliography}
+% --- Bibliography enabled: the literature review supplies \cite keys. ---
+% Appendices remain disabled until those files are wired back in.
+\bibliographystyle{ieeetr}
+\bibliography{bibliography}
 
 % \onecolumn
 % \appendices
