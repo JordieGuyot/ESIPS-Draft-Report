@@ -183,16 +183,23 @@ The second and third stages, dense embedding retrieval and cross-encoder re-rank
         \toprule
         \textbf{Component} & \textbf{Validation Target} & \textbf{Dataset} & \textbf{Metric} \\
         \midrule
-        IR Extraction & Query-understanding accuracy & Hand-built stratified gold set & Entity match + logical equivalence \\
-        Keyword extraction & Keyword quality & KPBiomed, OAGKX, PubmedAKE & F1 (faithful, semantic) \\
-        Dense bi-encoder & Retrieval quality & SciRepEval ad-hoc search & nDCG \\
-        Cross-encoder & Re-ranking quality & SciRepEval ad-hoc search & nDCG \\
-        Embedding quantisation & Int8 accuracy cost & SciRepEval ad-hoc search & nDCG (fp32 vs int8) \\
+        Keyword extraction   & Keyword quality              & KPBiomed, OAGKX, PubMedAKE     & Present/absent F1@5 (stemmed)        \\
+        IR extraction        & Query-understanding accuracy & Hand-built stratified gold set & Entity match + logical equivalence   \\
+        Dense bi-encoder     & Retrieval quality            & SciRepEval ad-hoc search       & nDCG                                 \\
+        Cross-encoder        & Re-ranking quality           & SciRepEval ad-hoc search       & nDCG                                 \\
+        Embedding quantisation & Int8 accuracy cost         & SciRepEval ad-hoc search       & nDCG (fp32 vs.\ int8)                \\
         \bottomrule
     \end{tabularx}
 \end{table}
 
 Each component designed in Section~\ref{subsec:component-design} is validated independently, against established benchmarks to allow for a comparison of models, from which one can be selected for the final system. This component-wise validation strategy, as summarised in Table~\ref{tab:validation-design}, acts as the counterpart to the design outlined in Section~\ref{subsec:component-design}, following the design and validation approach of Section~\ref{subsec:design-approach}. The outcome of each benchmark, including the model selected, is reported in the Data and Results section.
+
+\subsubsection{Keyword Generation}
+\label{subsubsec:keyword-generation}
+
+The keyword generation module of Section~\ref{subsubsec:ingestion-storage} is evaluated against three keyphrase datasets, namely KPBiomed, OAGKX, and PubMedAKE, each of which pairs documents with reference keyphrases. Reference keyphrases are split into present (extractive) keyphrases, which occur verbatim in the source text, and absent (abstractive) keyphrases, which do not and so must be generated. Each is scored by F1@5 with light stemming, so that a keyphrase and its stem count as a match while a different word of the same meaning does not. The present/absent split isolates faithful extraction from generation, which matters because a language-model extractor can hallucinate keyphrases the source does not contain. 
+
+The candidates place a large-language-model generator, GPT-5.4-nano, against established statistical and neural baselines: TF-IDF, YAKE, TextRank, and MultipartiteRank as statistical or graph-based extractors; KeyBERT-MiniLM and KBIR-inspec as neural extractors; and KeyBART as a fine-tuned generative model. The purely extractive baselines can match only present keyphrases by construction, whereas the generative models can also attempt absent ones, so the present/absent split doubles as a comparison between the two families.
 
 \subsubsection{IR Extraction}
 \label{subsubsec:ir-extraction}
@@ -208,20 +215,19 @@ The benchmark was built by hand, because the literature (Section~\ref{sec:lr-gap
 
 Each model is then scored against the hand-written answers on two parts. The first is the entities, the individual terms the model pulled out. These are compared to the correct terms allowing small surface differences, such as a word and its stem, but not accepting a different word of the same meaning, since this stage is meant to capture the terms the user actually wrote rather than paraphrase them. The second is the expression, the way those terms are combined with AND, OR, and NOT. This is judged by logical equivalence, meaning the answer counts as correct if it selects the same papers as the hand-written one, even when written in a different but equivalent form. The same request can be arranged in more than one valid way, for example A AND B is the same as B AND A. Several candidate models are scored this way, with the selected model and the scores reported in the Data and Results section.
 
-\subsubsection{Keyword Generation}
-\label{subsubsec:keyword-generation}
-
-The keyword generation module of Section~\ref{subsubsec:ingestion-storage} is evaluated against three keyphrase datasets, namely KPBiomed, OAGKX, and PubMedAKE, each of which pairs documents with reference keyphrases. Two F1 measures are reported: faithful, requiring a generated keyphrase to match a reference exactly; and semantic, in which an LLM judges whether a generated and a reference keyphrase are equivalent, which credits valid paraphrases that an exact match would reject. The candidate models benchmarked here are [to be added].
-
 \subsubsection{Dense Retrieval}
 \label{subsubsec:dense-retrieval}
 
-The dense bi-encoder is evaluated on the ad-hoc search tasks of SciRepEval, namely Search, NFCorpus, and TREC-CoVID, measured by nDCG. SciRepEval is an established benchmark for scientific document retrieval (Section~\ref{sec:lr-bench}), and nDCG is the standard measure of ranking quality, which keeps the stage comparable to prior work. The candidates are SPECTER2 and text-embedding-3-small.
+The dense bi-encoder is evaluated on the ad-hoc search tasks of SciRepEval, namely NFCorpus, TREC-CoVID, and Search, measured by nDCG. SciRepEval is an established benchmark for scientific document retrieval (Section~\ref{sec:lr-bench}), and nDCG is the standard measure of ranking quality, which keeps the stage comparable to prior work. 
+
+The candidates comprise general-purpose embedders (Qwen3-Embedding at 0.6B and 4B, EmbeddingGemma-300M, mxbai-embed-large-v1, BGE-M3, and the hosted text-embedding-3-small) alongside the scientific fine-tuned SPECTER2 in both its base and ad-hoc-query variants. The set contrasts general-purpose against domain-tuned encoders, and self-hostable against paid-API models (text-embedding-3-small being the sole hosted option), the two axes along which the results divide.
 
 \subsubsection{Cross-Encoder Re-ranking}
 \label{subsubsec:cross-encoder}
 
-The cross-encoder is evaluated on the same SciRepEval ad-hoc search tasks under the same metric, by re-ranking the retrieved candidates, so the gain it adds can be read directly against the bi-encoder alone. The candidates include Cohere Rerank 4.0 Pro and self-hosted models such as mxbai-rerank-large-v1.
+The cross-encoder is evaluated on the same SciRepEval ad-hoc search tasks under the same metric, by re-ranking the retrieved candidates, so the gain it adds can be read directly against the bi-encoder alone. 
+
+Thirteen rerankers are compared: commercial APIs (Cohere Rerank 4.0 in its Pro and Fast tiers); self-hostable neural rerankers (the Qwen3-Reranker at 0.6B and 4B, jina-reranker-v2, and mxbai-rerank-large-v1); a biomedical domain-specific model (MedCPT); and older cross-encoder baselines (the ms-marco-MiniLM and bge-reranker families, and gte-reranker-modernbert-base). This spread lets the results separate model family and recency from raw parameter count, and general-purpose rerankers from the domain-specific one.
 
 \subsubsection{Embedding Quantisation}
 \label{subsubsec:embedding-quantisation}
@@ -231,4 +237,4 @@ Quantising the embeddings to int8 (Section~\ref{subsubsec:ingestion-storage}) tr
 \subsubsection{System-Level Evaluation}
 \label{subsubsec:system-level}
 
-\emph{The composed system has no off-the-shelf end-to-end benchmark, which reflects the gap identified in Section~\ref{sec:lr-limitations}. Under the separation of concerns above, however, the system's behaviour follows from its parts. The structured stage returns the papers matching the boolean query, established by the IR and keyword evaluations together with the deterministic compiler, and the dense stages rank those papers, established by their benchmarks. The component results therefore stand as the primary evidence for the system, subject to two limits stated plainly. First, the dense models are benchmarked on a full corpus rather than on the candidate set they rank within the cascade, so their measured quality is a close proxy for their role here rather than a direct measurement of it. Second, the system returns only papers that match the boolean query, so a paper that is relevant but does not match is not retrieved, which is the precision-oriented behaviour the design intends rather than a defect. A small end-to-end check over a set of realistic queries with light relevance judgments would confirm both points directly, and whether to run one is being settled with the academic supervisor.}
+The composed system has no off-the-shelf end-to-end benchmark, which reflects the gap identified in Section~\ref{sec:lr-limitations}. Under the separation of concerns above, however, the system's behaviour follows from its parts. The structured stage returns the papers matching the boolean query, established by the IR and keyword evaluations together with the deterministic compiler, and the dense stages rank those papers, established by their benchmarks. The component results therefore stand as the primary evidence for the system, subject to two limits stated plainly. First, the dense models are benchmarked on a full corpus rather than on the candidate set they rank within the cascade, so their measured quality is a close proxy for their role here rather than a direct measurement of it. Second, the system returns only papers that match the boolean query, so a paper that is relevant but does not match is not retrieved, which is the precision-oriented behaviour the design intends rather than a defect. A system-level evaluation confirms both points directly: the assembled cascade is compared against a retrieval-augmented LLM and Google Scholar over a curated set of realistic queries, assessed qualitatively per query and with light relevance judgments over the returned results. This comparison is the instrument for RQ3; its results appear in Section~\ref{sec:results-system} and its analysis in Section~\ref{subsec:rq3}.

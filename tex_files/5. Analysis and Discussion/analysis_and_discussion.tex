@@ -1,0 +1,92 @@
+%=======================================================================
+% Analysis and Discussion
+% Included from main.tex via \input{...} (or \include{...}).
+% Contains the section body only: no \documentclass, no \begin{document}.
+% Assumes the IEEEtran class already loaded by main.tex (auto A/B/C and
+% 1)/2)/3) numbering for \subsection and \subsubsection).
+%
+% PLACEHOLDERS for Claude Code to reconcile (grep for "PLACEHOLDER"):
+%   1. \ref{tab:reasoning-effect} points at the reasoning on/off table
+%      (Table X, in the Data and Results section). Its real \label lives
+%      in that file; swap this label name for the real one.
+%   2. The RQ3 subsection is a stub, pending system-level results.
+%
+% NOTE: prose mentions of "the system-level evaluation" are intentionally
+% left as plain text, not \ref. Convert to refs later if desired.
+%=======================================================================
+
+\section{Analysis and Discussion}
+\label{sec:analysis-discussion}
+
+\subsection{RQ1: Structured Graph Retrieval}
+\label{subsec:rq1}
+
+\subsubsection{Keyword Extraction}
+
+GPT-5.4-nano extracts keywords more accurately than every baseline across the three scientific benchmarks, with the single exception of KeyBART on OAGKX. KeyBART's lead there is consistent with its having been fine-tuned on OAGKX, as the same model falls well below GPT-5.4-nano on both KPBiomed (17.40 against 30.86) and PubMedAKE (18.41 against 36.44). This collapse outside OAGKX is characteristic of a model overfit to one dataset rather than one that extracts well in general.
+
+The extractive quality of GPT 5.4-nano comes at a slight cost. Because it is a language model, GPT-5.4-nano occasionally produces keyphrases absent from the source text despite prompting to suppress this. The effect is minor. On every dataset its absent (generated) scores fall more than an order of magnitude below its present (extracted) scores, so in practice the model leans heavily toward extraction. The purpose-built extractors, by contrast, score zero on the absent task by construction, since they return only spans that occur in the source.
+
+A reproducibility check over three runs confirms the model is not deterministic. Any two runs share roughly 73 percent of their combined keyphrases for a given paper (a set-level Jaccard of 0.73), which corresponds to about one keyphrase in six changing between runs. This has a negligible effect on measured quality, with a run-to-run present-F1 standard deviation of 0.07, whereas the deterministic baselines are reproducible by construction.
+
+\subsubsection{Intermediate Representation Formation}
+
+GPT-5.4-nano is the strongest model on the IR extraction benchmark at 0.937, closely followed by gpt-5-mini at 0.931. Both are hosted frontier models, and both outperform every self-hosted open model by a wide margin, the best of which, qwen3:8b, reaches only 0.802. The most plausible drivers are model scale and training, though the hosted models' parameter counts are undisclosed, so this remains a hypothesis rather than a measured cause.
+
+Among the open models the generational gap is large. qwen3:4b scores around 0.58 higher than its predecessor qwen2.5:3b (0.784 against 0.207), consistent with the broader trend of newer model generations improving on the same task through better training data and methods, and illustrating the advantage a newer variant of the same family can hold. At the bottom, phi4-mini and llama3.2:3b score 0.052 and 0.026, failing the benchmark by a wide margin, probably because they are relatively small and older models that have likely not been trained on tasks resembling this one.
+
+Table~\ref{tab:ir-reasoning} isolates the effect of reasoning in a separate single-run ablation, not directly comparable to the 0.937 headline.
+
+For gpt-5.4-nano the gain is negligible, moving from 0.914 to 0.922 for around 246 reasoning tokens, indicating the model already reaches its ceiling in a single pass with no reasoning budget. gpt-5-mini behaves differently, rising from 0.750 to 0.940 once reasoning is enabled, at a cost of around 896 reasoning tokens per query. The contrast is consistent with gpt-5.4-nano being suited to single-shot use at scale and gpt-5-mini depending on a reasoning budget to compete, though neither model's design intent is documented. Even with reasoning enabled, gpt-5-mini does not meaningfully exceed gpt-5.4-nano in its default configuration, the two scoring within noise of one another, possibly reflecting gpt-5.4-nano being the more recent model of the two.
+
+Decomposing the chosen model shows it is strong across both components of the task. Entity extraction is near-perfect at a micro F1 of 0.984, while expression equivalence is lower at 0.931, so the joint IR accuracy of 0.937 is bounded by the expression score, since entity extraction almost never fails on its own. Expression is the harder of the two because the entities are largely surface content lifted directly from the query, whereas the boolean structure is a latent form the model must infer. Even so, most expression errors are near-misses rather than collapses, with a graded variant that credits partially correct expressions reaching 0.985.
+
+By query type, the model's errors concentrate in four strata. The largest is \texttt{filter\_distractor} at 0.700, where a filter term such as a publication year or citation bound is miscategorised as a searchable entity, an issue that is addressable through tighter prompting that defines these cases explicitly. The remaining three, \texttt{multi\_negation} (0.800), \texttt{deep\_nested} (0.833), and \texttt{hard\_typing} (0.917), are the structurally hardest queries and likely reflect genuine limits of the model's capability rather than a fixable prompt issue. On the simpler types the model made no errors at all, handling single-concept, multi-concept, exclusion, nested, mixed-entity, and review-style queries without a single failure. Per-stratum counts are small, at sixteen queries or fewer, so these perfect scores are best read as the absence of observed errors rather than a guarantee of perfect performance.
+
+A stability check over three runs shows the model is fairly consistent across configurations, with around 96 to 97 percent of IRs identical across runs, at 0.966 for temperature zero and 0.957 for temperature 0.7. As expected, the lower temperature is more deterministic, though not completely. Because the model is non-deterministic, all single-run results are reported with bootstrap confidence intervals, which capture sampling uncertainty over the finite gold set. This is a separate quantity from run-to-run variance, which the stability check confirms is negligible at a standard deviation of 0.004, so the single-run figures are not undermined by the model's non-determinism.
+
+\subsubsection{Overall judgement}
+
+Taken together, these results show that modern AI can construct the artefacts required for deterministic structured graph retrieval, though to differing degrees for the two artefacts involved. On the query side, GPT-5.4-nano constructs the intermediate representation from a natural-language query to a high standard, at a joint accuracy of 0.937, with its residual failures stemming from either genuine model limitations on the structurally hardest queries or loose prompting that is addressable. On the corpus side, the same model produces the strongest benchmarked keyword index of any candidate, but only in relative terms, since keyphrase extraction is a task where absolute scores are constrained by well-documented ceilings in the F1@5 metric, and GPT-5.4-nano's results are competitive with published extraction performance on comparable scientific datasets. Both artefacts also carry the cost of being produced by a language model rather than a deterministic process: the keyword stage occasionally generates rather than faithfully extracting, and neither stage is fully reproducible across runs.
+
+Because both artefacts feed a deterministic matcher, the quality of the structured stage as a whole is bounded entirely by how well these two can be constructed, and on this evidence that bound is high on the query side and competitive but imperfect on the corpus side. What neither component score establishes on its own is how the two behave in combination over the full corpus, which is the question the system-level evaluation (Section~\ref{subsec:rq3}) takes up, where the composed system is compared against existing tools. It is likely, too, that models better suited to both tasks will continue to emerge.
+
+\subsection{RQ2: Ranked retrieval mechanism}
+\label{subsec:rq2}
+
+\subsubsection{Bi-encoders}
+
+The immediate observation is that the general-purpose embedding models outperform the leading fine-tuned models on average, with both SPECTER2 variants among the bottom three. This is consistent with the fine-tuned models having been trained for one task type rather than for retrieval in general. SPECTER2-adhoc-query, tuned for the query side of ad-hoc search, tops the Search task at 78.22, clear of the field, yet records the worst NFCorpus score of any model at 70.46 and one of the lowest averages. Its Search lead is therefore close to in-domain performance rather than evidence of general retrieval quality, and it does not carry over to the other tasks. SPECTER2-base sits at the bottom on average for a different reason, in that it is not tuned for ad-hoc search at all. The general-purpose models, trained across many domains, hold up across all three tasks, which is what places them above both fine-tuned variants.
+
+Unlike the IR extraction results, the hosted model is not the winner here. text-embedding-3-small sits at 82.10, below Qwen3-Embedding-4B at 83.28, EmbeddingGemma-300M at 82.30, and Qwen3-Embedding-0.6B at 82.29, though above mxbai-embed-large-v1 at 82.02. The top models form a close cluster, and Qwen3-Embedding-4B leads on average with only marginal overlap between the lower tail of its interval and the upper tails of the rest, so its lead is plausible rather than established. Across tasks, text-embedding-3-small is level with the leaders on Search and close on NFCorpus, the two broader benchmarks, and its largest gap is on TREC-COVID, where its point estimate sits below the Qwen models with only marginal interval overlap. This may suggest that it weakens on more specific benchmarks as queries tighten, though TREC-COVID is the only such benchmark here, so the reading is suggestive rather than established.
+
+EmbeddingGemma-300M is the most deployment-efficient of the strong models. It matches the leading cluster on nDCG while being the smallest competitive model on both axes that drive cost: it is around thirteen times smaller than Qwen3-Embedding-4B, twice as small as Qwen3-Embedding-0.6B, and slightly smaller than mxbai by parameter count, and it carries the smallest embedding dimension of any competitive model at 768. The dimension is the more consequential of the two, since in-memory footprint scales with it: at int8 over the 85 million works, 768 dimensions require around 65 GB against around 131 GB for text-embedding-3-small at 1536. A lighter model also encodes more cheaply. EmbeddingGemma therefore reaches the leading cluster's accuracy at a fraction of its memory and compute.
+
+There is nonetheless a real advantage to a hosted model such as text-embedding-3-small, in that it provides managed infrastructure with no upfront compute cost, whereas the self-hosted models require provisioning hardware to encode all 85 million works directly. The tradeoff is two-sided: the hosted model is a paid API with undisclosed parameters, carrying recurring cost and no control over the model, while self-hosting carries a one-time compute cost and full control. This tradeoff is what the selection turns on, and it is taken up in the overall judgement.
+
+\subsubsection{Cross-encoders}
+
+For the cross-encoders there is no significant difference between cloud-hosted and self-hosted models. Cohere Rerank 4.0 Pro holds the highest average at 83.47, but its interval overlaps heavily with the next three, Qwen3-Reranker-4B at 83.13, Cohere Rerank 4.0 Fast at 82.78, and Qwen3-Reranker-0.6B at 82.43, so these four form a genuine statistical tie at the top. The hosted models edge the rest on point estimate only. Within that leading group the strongest self-hostable model, Qwen3-Reranker-4B, is tied with the hosted leader, so unlike the bi-encoder, where the hosted model sat mid-cluster, here a self-hostable model reaches the top of the benchmark.
+
+The models that lead are particular newer families rather than the larger ones. The Cohere 4.0 and Qwen3 rerankers occupy the top of the table across sizes, and parameter count does not track performance: Qwen3-Reranker-0.6B at 82.43 outscores much larger but older models such as bge-reranker-large at 76.00. The differentiator is therefore the model family and its training rather than raw scale. The one domain-specific model, MedCPT, sits mid-pack at 79.53, below the strong general models, even though the corpus is biomedical and MedCPT is the biomedical-trained reranker. For re-ranking, then, domain specialisation offered no advantage, and the general models outperformed the specialist on its own domain, the opposite of the in-domain effect seen for the fine-tuned bi-encoders.
+
+Unlike the bi-encoder, model size carries no real advantage here. The stage re-ranks only around 100 candidates at a time, so its cost is query-time latency rather than stored memory, and at that volume the difference between a small and a large model is a matter of milliseconds. The contrast with the bi-encoder is structural: the bi-encoder embeds and stores a vector for all 85 million works, so embedding dimension drives a permanent memory cost, whereas the reranker stores nothing and runs only over the small candidate pool at query time. Size was therefore decisive for the bi-encoder and is close to irrelevant here, which means the most accurate reranker can be chosen without the deployment penalty that constrained the embedding choice.
+
+The infrastructure tradeoff still holds but applies on a different axis. Because re-ranking is bound by per-query latency rather than a fixed memory footprint, its cost scales with query volume rather than corpus size. As the user base grows, the pressure falls on throughput and concurrent query handling, which is the opposite axis to the bi-encoder's fixed cost of storing 85 million vectors. Scaling the reranker is therefore a matter of serving capacity rather than storage.
+
+\subsubsection{Overall judgement}
+
+Taken together, these results show that current bi-encoders and cross-encoders perform well on the scientific ad-hoc search benchmarks, with the leading models in both stages clustered near the top of each table at averages around 82 to 83 nDCG. Both semantic stages of the cascade can therefore be equipped with capable models, and the retrieve-then-rerank pattern they implement is well-supported by what is currently available.
+
+Across both components, the models that lead are particular recent families rather than the domain or task-specific ones. The Qwen3 and Cohere 4.0 families and the general-purpose embedders sit at the top, while the specialist models do not lead their tasks, though the effect is not uniform: in-domain training helped the bi-encoder on its in-domain task, where SPECTER2-adhoc-query topped Search, yet did not help the reranker on its in-domain corpus, where the biomedical MedCPT sat mid-pack on biomedical text. Most of the gaps between the leaders are within confidence intervals, so the leading models are better read as a strong cluster than as a clear ranking.
+
+In neither stage does the paid hosted model significantly outperform the open ones on accuracy. For the bi-encoder, text-embedding-3-small sits within the leading statistical tie but below three open models on point estimate; for the cross-encoder, Cohere Rerank 4.0 Pro leads on point estimate yet ties the open Qwen3-Reranker-4B within intervals. In both stages, accuracy alone does not separate the hosted option from the best open one, so the selection turns on deployment characteristics rather than retrieval quality.
+
+On that basis both stages were assigned to the hosted models for v1, for managed infrastructure with no upfront compute: the self-hosted alternatives would require provisioning hardware to encode all 85 million works, whereas the hosted APIs carry a recurring cost but no build-out. This is an engineering choice, not a quality one, and it is reversible. Because the tied open models, EmbeddingGemma-300M for the bi-encoder and Qwen3-Reranker-4B for the cross-encoder, are accuracy-viable in their own right, the system can move to self-hosting without loss of retrieval quality should the cost structure or scale make that preferable.
+
+A limit applies to all of the above. These are full-corpus benchmark scores, which stand as a proxy for the role each model plays inside the cascade, where it ranks the structured candidate pool the first stage returns rather than the full corpus. Whether the benchmark ranking holds over that candidate pool is a property of the integrated system, and is taken up in the system-level evaluation (Section~\ref{subsec:rq3}), where the cascade is run end to end over real queries.
+
+\subsection{RQ3: Comparison of System Against Others}
+\label{subsec:rq3}
+
+This section answers RQ3 by comparing the assembled cascade against a retrieval-augmented LLM and Google Scholar over a set of realistic queries. RQ1 and RQ2 bound the structured and ranked stages in isolation; the comparison here explains how the composed system's results differ from those of a semantic-only LLM and a text-plus-citation engine, grounded in the architectural differences those stages established. It is qualitative, characterising per query what each system surfaces and misses, supported by light relevance judgments. Results are reported in the final submission.

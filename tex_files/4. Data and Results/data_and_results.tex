@@ -13,8 +13,9 @@
 % ============================================================================
 
 \section{Data and Results}
+\label{sec:data-results}
 
-This section reports the result of each component benchmark from the validation design in Section~II-D, taking the components in turn.
+This section reports the result of each component benchmark from the validation design in Section~\ref{subsec:evaluation-validation}, taking the components in turn.
 
 % ----------------------------------------------------------------------------
 \subsection{Keyword Generation}
@@ -167,6 +168,8 @@ GPT-5.4-nano was benchmarked for natural-language-to-IR extraction against a set
 
 Figure~\ref{fig:ir-accuracy} plots each model's accuracy with its 95 percent bootstrap interval. The two hosted models lead the benchmark by a clear margin, with GPT-5.4-nano highest at an IR accuracy of 0.937 and GPT-5-mini close behind at 0.931. Both hosted intervals clear those of every local model without overlap, placing the hosted advantage beyond sampling noise, while the two overlap each other and are statistically indistinguishable. Among the local models, the two strongest (qwen3:8b and qwen3:4b) reach around 0.80, and the three smaller models fall away sharply to 0.207, 0.052, and 0.026, near the floor of the task.
 
+Note, the headline 0.937 is the mean of three runs in the model's deployed, default-effort configuration, its single-run range spanning 0.914 to 0.940 (Table~\ref{tab:ir-stability}). Unless noted otherwise, IR-accuracy figures for this model refer to that configuration; where a different configuration is reported below, in particular the reasoning ablation, its levels are not directly comparable to this headline.
+
 \begin{table}[t]
 \caption{Effect of reasoning on IR accuracy.}
 \label{tab:ir-reasoning}
@@ -188,7 +191,7 @@ Reasoning is controlled through the Azure \texttt{reasoning\_effort} setting wit
 \end{minipage}
 \end{table}
 
-Table~\ref{tab:ir-reasoning} isolates the effect of reasoning on the two GPT models. GPT-5.4-nano gains almost nothing from it, moving from 0.914 without reasoning to 0.922 with around 246 reasoning tokens, a difference of 0.008, and so reaches its accuracy in a single pass with no reasoning budget. GPT-5-mini behaves differently, scoring only 0.750 without reasoning and rising to 0.940 once reasoning is enabled, at a cost of around 896 reasoning tokens per query. The stronger model is already at its ceiling unaided, whereas the weaker one becomes competitive only by spending a substantial token budget.
+Table~\ref{tab:ir-reasoning} isolates the effect of reasoning on the two GPT models in a separate single-run ablation, one run per condition, so its levels are not directly comparable to the 0.937 and 0.931 headlines of Table~\ref{tab:ir-accuracy}; the effect of interest is the within-model change from enabling reasoning. GPT-5.4-nano gains almost nothing from it, moving from 0.914 without reasoning to 0.922 with around 246 reasoning tokens, a difference of 0.008, and so reaches its accuracy in a single pass with no reasoning budget. GPT-5-mini behaves differently, scoring only 0.750 without reasoning and rising to 0.940 once reasoning is enabled, at a cost of around 896 reasoning tokens per query. Within the ablation, the stronger model is already at its ceiling unaided, whereas the weaker one reaches a comparable level only by spending a substantial token budget.
 
 \begin{table}[t]
 \caption{Deployed model, metric decomposition in the default-effort configuration.}
@@ -314,7 +317,7 @@ The metric is SciRepEval ad-hoc-search full-ranking nDCG over a per-query candid
 \label{fig:bienc-pertask}
 \end{figure}
 
-text-embedding-3-small was selected as the dense bi-encoder. The candidate models were evaluated on the three ad-hoc search tasks of SciRepEval, namely NFCorpus, TREC-CoVID, and Search, scored by nDCG. The figure reported is SciRepEval full-ranking nDCG over a per-query candidate pool rather than BEIR full-corpus nDCG@10, which keeps the stage comparable to the scientific retrieval benchmark established in Section~II-D. All scores are nDCG $\times$100 with 95 percent bootstrap intervals from 1000 resamples.
+text-embedding-3-small was selected as the dense bi-encoder. The candidate models were evaluated on the three ad-hoc search tasks of SciRepEval, namely NFCorpus, TREC-CoVID, and Search, scored by nDCG. The figure reported is SciRepEval full-ranking nDCG over a per-query candidate pool rather than BEIR full-corpus nDCG@10, which keeps the stage comparable to the scientific retrieval benchmark established in Section~\ref{subsec:evaluation-validation}. All scores are nDCG $\times$100 with 95 percent bootstrap intervals from 1000 resamples.
 
 Table~\ref{tab:bienc-results} reports the per-task and average scores in full, and Figure~\ref{fig:bienc-avg} plots each model's average nDCG with its interval. The selected model records an average of 82.10. Qwen3-Embedding-4B holds the highest point estimate at 83.28, but the intervals of the top five models all overlap, forming a statistical tie that contains text-embedding-3-small along with EmbeddingGemma-300M, Qwen3-Embedding-0.6B, and mxbai-embed-large-v1. A clear margin separates this group from the lower three, SPECTER2-adhoc-query at 79.59, BGE-M3 at 79.36, and SPECTER2-base at 78.42, whose intervals fall below the leading cluster.
 
@@ -446,5 +449,6 @@ Table~\ref{tab:xenc-deploy} records the deployment characteristics, namely appro
 
 % ----------------------------------------------------------------------------
 \subsection{System-Level Evaluation}
+\label{sec:results-system}
 % Placeholder. Results not yet available.
-\textit{[Placeholder. End-to-end results over a realistic query set with light relevance judgments to be added.]}
+This evaluation compares the assembled system against a retrieval-augmented LLM and Google Scholar over a curated set of realistic queries, reported as a per-query characterisation of what each system retrieves alongside light relevance judgments over the returned results. It supplies the system-level evidence the component benchmarks cannot, and the basis for the RQ3 comparison in Section~\ref{subsec:rq3}. Results are reported in the final submission.
