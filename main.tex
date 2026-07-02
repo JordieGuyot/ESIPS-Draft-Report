@@ -29,7 +29,7 @@
 
 \input{tex_files/5. Analysis and Discussion/analysis_and_discussion.tex}
 
-% \input{tex_files/6. Conclusion and Future Work/}
+\input{tex_files/6. Conclusion and Future Work/conclusion_and_future_work.tex}
 
 
 
@@ -38,18 +38,26 @@
 \onecolumn
 
 % --- Bibliography enabled: the literature review supplies \cite keys. ---
-% Appendices remain disabled until those files are wired back in.
 \bibliographystyle{ieeetr}
 \bibliography{bibliography}
 
-% --- Appendix: deferred figures and tables (moved out of the main body) ---
-\input{tex_files/7. Appendix/deferred_exhibits.tex}
+% --- Appendices: dynamic lettering via the custom \appendix patch (preamble.sty:307),
+%     where each \section{Title} auto-prints "Appendix <A/B/C/...>: Title" and \label/\ref
+%     resolve to the letter. Order of \input below fixes the letters, so cross-references
+%     update automatically if these are reordered or one is added/removed. ---
+% Activate the custom appendix-section patch (preamble.sty:307) directly, rather than
+% via IEEEtran's \appendix (which prints a spurious standalone "Appendix" heading and
+% fixes \thesection to a constant "A", breaking \ref). This resets the counter, makes
+% \thesection alphabetic so \ref shows the letter, and routes \section to the patch.
+\makeatletter
+\setcounter{section}{0}
+\renewcommand\thesection{\@Alph\c@section}
+\let\section\appendix@section
+\makeatother
 
-% \onecolumn
-% \appendices
-
-% \input{tex_files/2. Review of Plan/plan_appendix.tex}  % file removed — re-enable when appendix is restored
-
-% \input{tex_files/Part2_Appendix}
+\input{tex_files/7. Appendix/deferred_exhibits.tex}          % Appendix A
+\input{tex_files/7. Appendix/appendix_b_worked_example.tex}  % Appendix B (placeholder)
+\input{tex_files/7. Appendix/appendix_c_prompts.tex}         % Appendix C
+\input{tex_files/7. Appendix/appendix_d_error_exemplars.tex} % Appendix D (placeholder)
 
 \end{document}

@@ -10,14 +10,43 @@
 %      \usepackage{booktabs}   % \toprule / \midrule / \bottomrule
 %      \usepackage{tabularx}   % width-fitting validation table (pulls in array)
 %
-%  Notes:
-%   * Figures use \includegraphics with the image files under images/.
-%   * Cross-references WITHIN this file, to the literature review, and the
-%     former <TBC> forward-reference are wired with \ref. References to
-%     Appendix A, Appendix B and the Data and Results section are left as
-%     plain text until those sections exist in the project.
-%   * Table 1 (memory budget) has no data yet (placeholder table), and the
-%     Keyword Generation candidate list is still "[to be added]".
+%  Revision notes (July 2026 pass, items 4-7):
+%   * Repeatability gaps are marked inline with \textit{[FILL: ...]} --
+%     grep for "FILL" to find every slot. Each is listed in the summary
+%     accompanying this file.
+%   * Appendix plan: Appendix A holds the full result tables and the
+%     keyword bar charts (kept there permanently by author decision, as
+%     the in-body figures present the same information more digestibly;
+%     consider retitling from "Deferred..." to "Supplementary Figures
+%     and Tables" since nothing is deferred any more);
+%     Appendix B = worked example (query -> IR -> Cypher), being added;
+%     Appendix C = prompts and tool schemas (keyword generation prompt,
+%     IR-extraction system prompt + forced tool schema), to be added;
+%     Appendix D = error exemplars (one hallucinated keyphrase with its
+%     source text; one filter_distractor failure with query + produced
+%     IR), being added by the author (item 14).
+%     References to B and C are literal text until those appendices
+%     exist, mirroring the Section~VI convention in the Introduction.
+%   * The old Appendix~A reference for node properties now points at the
+%     schema figure, which carries the property set in-figure.
+%   * Section III-C4 now documents stages 2 and 3 rather than pointing
+%     elsewhere; Section III-B's stage-1 description now matches the
+%     entity types III-C3 and III-D2 actually use (not keywords only).
+%   * fig:pipeline is kept as-is per author; redraw TODO noted at site.
+%   * Stale header notes about the memory-budget placeholder table and
+%     the "[to be added]" candidate list removed (both resolved).
+%   * July fill pass: snapshot slot narrowed to a checked shortlist;
+%     keyword decoding params filled (temp 0, 400-token cap, no reasoning
+%     effort, API-default sampling); confidence threshold and candidate
+%     caps removed per author; similarity = Memgraph's built-in cosine
+%     over the candidate pool; rerank ties broken by citation count;
+%     8 GB GPU evaluation environment noted in III-D. Quantisation
+%     wording is precision-neutral: the author's "fp16 to int8" referred
+%     to benchmark model WEIGHTS (now covered by the III-D environment
+%     note); the stored vectors' source precision is unconfirmed (see
+%     VERIFY in Ingestion and Storage). OPEN (grep PENDING/VERIFY): the
+%     unattributed "10,000"; per-work keyphrase bound; stored-vector
+%     source precision; exact Memgraph similarity procedure.
 % =====================================================================
 
 \section{Research Design}
@@ -26,7 +55,7 @@
 \subsection{Design Approach}
 \label{subsec:design-approach}
 
-This section sets out the methodology for designing and evaluating the system in order to answer the project's stated research question. Accordingly, the research design was required to do two things: firstly, document a retrieval architecture in enough detail to be reproduced; secondly, define an evaluation methodology that establishes whether the architecture works and isolates the contribution of each component.
+This section sets out the methodology for designing and evaluating the system in order to answer the project's research questions. Accordingly, the research design was required to do two things: firstly, document a retrieval architecture in enough detail to be reproduced; secondly, define an evaluation methodology that establishes whether the architecture works and isolates the contribution of each component.
 
 The following approach was used for systematically designing and validating the system:
 
@@ -34,7 +63,7 @@ The following approach was used for systematically designing and validating the 
     \item High-level design of the architecture, the graph schema, and the ingestion mechanism;
     \item Detailed design of each retrieval module;
     \item Isolated validation of each module against an appropriate benchmark;
-    \item Validation of the integrated system against the research question.
+    \item Validation of the integrated system against the research questions.
 \end{enumerate}
 
 This ensures that each design decision made in the earlier stages has a corresponding benchmark in the later stages. The earlier stages document the design for reproducibility, and the later stages test it for validity. This correspondence is what makes the methodology suitable for this thesis.
@@ -56,7 +85,7 @@ The system has two parts. An offline ingestion pipeline builds the knowledge gra
 At a high level, the system uses an ingestion pipeline that:
 
 \begin{itemize}
-    \item takes OpenAlex as the source of paper data, namely the title, abstract, authors, and publication date of each work;
+    \item takes OpenAlex as the source of paper data, namely the title, abstract, publication date, authors and their institutional affiliations, and the venue and publisher of each work; % VERIFY: confirm this field list matches what the pipeline actually extracts (the schema's Person, Institution, Venue and Publisher nodes imply all of these).
     \item extracts the keyphrases and dense embedding of each work from its title and abstract;
     \item transforms the data into the ontology chosen to represent the scholarly domain;
     \item loads the result into the database.
@@ -67,7 +96,7 @@ OpenAlex was chosen as the source because it is the largest fully open scholarly
 For retrieval, the system uses a three-stage pipeline:
 
 \begin{itemize}
-    \item Structured graph retrieval, which produces the initial candidate pool. A natural-language query is translated into a structured representation of the keywords to search for and the Boolean logic that combines them, with keywords taken either from the query or from explicit user input. These keywords are matched against the graph's keyword nodes using BM25, and the papers attached to the matched nodes are retrieved and combined under the requested AND, OR, and NOT logic.
+    \item Structured graph retrieval, which produces the initial candidate pool. A natural-language query is translated into a structured representation of the typed entities to search for, such as keywords, researcher names, institutions, and venues, and the Boolean logic that combines them, with entities taken either from the query or from explicit user input. Non-exact entities are matched against the graph's corresponding nodes with BM25 over text indexes, exact entities by direct property match, and the works connected to the matched entities are retrieved and combined under the requested AND, OR, and NOT logic.
     \item Dense embedding retrieval, which narrows the candidate pool by semantic similarity. The query and each candidate paper are represented as high-dimensional vectors, and the candidates closest to the query by cosine similarity are kept, up to the top 100.
     \item Cross-encoder re-ranking, which orders the final results by relevance. A cross-encoder takes the query and a paper's title and abstract together and returns a single relevance score, and the top 100 from the second stage are re-ranked by that score.
 \end{itemize}
@@ -76,7 +105,7 @@ This extends the two-stage retrieve-then-rerank pattern common to large-scale re
 
 Each stage also performs a function the others cannot, which is why all three are present rather than any one alone. The first stage lets the system express typed or structural queries that the other two cannot. As established in Section~\ref{sec:lr-dense}, single-vector dense retrieval cannot represent requests such as papers from a particular author on a given topic published after a given year. Structured retrieval expresses these directly and returns a high-recall candidate set for the later stages to rank. Its output is unbounded. The structured representation and its compilation into a graph query are documented in Section~\ref{subsec:component-design}.
 
-The second stage ranks that candidate set by semantic similarity, which structured retrieval cannot do, since it matches only on shared keywords. Dense embeddings rank candidates by their semantic relatedness to the full query, capturing relevance that exact-term matching misses. Section~\ref{sec:lr-dense} also showed that dense retrieval used alone misses a substantial share of relevant papers and is weak on entity-heavy queries, which is why it ranks a structured candidate set here rather than serving as the primary retrieval mechanism. The embeddings are quantised to reduce their memory footprint, with the quantisation and its justification documented in Section~\ref{subsec:component-design}.
+The second stage ranks that candidate set by semantic similarity, which structured retrieval cannot do, since it matches only on the entities and keywords a work shares with the query. Dense embeddings rank candidates by their semantic relatedness to the full query, capturing relevance that exact-term matching misses. Section~\ref{sec:lr-dense} also showed that dense retrieval used alone misses a substantial share of relevant papers and is weak on entity-heavy queries, which is why it ranks a structured candidate set here rather than serving as the primary retrieval mechanism. The embeddings are quantised to reduce their memory footprint, with the quantisation and its justification documented in Section~\ref{subsec:component-design}.
 
 The third stage refines the ranking once more. A bi-encoder compares two vectors that were computed separately, whereas a cross-encoder reads the query and the document together and can weigh their interaction directly, which Section~\ref{sec:lr-dense} identified as the source of the accuracy that late-interaction and cross-encoder approaches achieve over single-vector retrieval. This makes it more accurate but too expensive to run over many papers, which is why it is placed last and applied only to the 100 candidates the earlier stages have selected.
 
@@ -89,7 +118,7 @@ The third stage refines the ranking once more. A bi-encoder compares two vectors
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=\linewidth]{images/Schema.png}
-    \caption{Scholarly Knowledge Graph Schema.}
+    \caption{Scholarly knowledge graph schema, with the properties held on each node type.} % VERIFY: caption assumes the updated figure carries the per-node property set moved in from the old Appendix A.
     \label{fig:kg-schema}
 \end{figure}
 
@@ -97,20 +126,35 @@ The schema is general purpose, built from generic entities such as works, keywor
 
 The design was derived from the knowledge graphs surveyed in Section~\ref{subsec:kg-infrastructure}, which commonly share a similar sub-ontology over the six node types required for retrieval (Work, Person, Institution, Venue, Publisher, and Keyword) and their associated edges. This schema is based on that common structure.
 
-The main point of departure concerns keyword modelling. SemOpenAlex, which is also built on OpenAlex, attaches keywords to the topics assigned to works rather than to the works directly, because OpenAlex derives its keywords at the topic level. Since this schema derives its own keywords per work (Section~\ref{subsubsec:ingestion-storage}), it attaches them directly to the work rather than through a topic node. The resulting schema is shown in Figure~\ref{fig:kg-schema}.
-
-The properties held on each node were refined through internal testing and reduced to the current set, which is given in Appendix~A.
+The main point of departure concerns keyword modelling. SemOpenAlex, which is also built on OpenAlex, attaches keywords to the topics assigned to works rather than to the works directly, because OpenAlex derives its keywords at the topic level. Since this schema derives its own keywords per work (Section~\ref{subsubsec:ingestion-storage}), it attaches them directly to the work rather than through a topic node. The resulting schema, together with the properties held on each node, is shown in Figure~\ref{fig:kg-schema}; the property set was refined through internal testing and reduced to the current form.
 
 \subsubsection{Ingestion and Storage}
 \label{subsubsec:ingestion-storage}
 
-For all purposes excluding benchmarks, the complete OpenAlex snapshot was used as the data source. As established in Section~\ref{subsec:kg-infrastructure}, OpenAlex is the most suitable index due to its large corpus of works and pre-processed metadata.
+For all purposes excluding benchmarks, the complete OpenAlex snapshot of \textit{[FILL: release date]} was used as the data source, with the version pinned in line with the snapshot-specific citation practice argued for in Section~\ref{subsec:kg-infrastructure}. As established there, OpenAlex is the most suitable index due to its large corpus of works and pre-processed metadata.
+% FILL (snapshot date): ingestion ran 23 Mar--1 Apr 2026 per the Gantt. The
+% public releases immediately before that window were 2026-01-15 and
+% 2026-02-03 per OpenAlex's RELEASE_NOTES (a March release may also exist).
+% Definitive answer: `head RELEASE_NOTES.txt` at the root of the snapshot you
+% downloaded, and put that date here.
 
-A biomedical subset was then selected from this snapshot by filtering on the OpenAlex field tag and retaining eleven fields, namely Medicine; Agricultural and Biological Sciences; Biochemistry, Genetics and Molecular Biology; Psychology; Health Profession; Chemistry; Neuroscience; Immunology and Microbiology; Nursing; Pharmacology, Toxicology and Pharmaceutics; and Dentistry. This subset gives the deployed system its biomedical focus, while the schema itself remains general purpose.
+A biomedical subset was then selected from this snapshot by filtering on the OpenAlex field tag and retaining eleven fields, namely Medicine; Agricultural and Biological Sciences; Biochemistry, Genetics and Molecular Biology; Psychology; Health Profession; Chemistry; Neuroscience; Immunology and Microbiology; Nursing; Pharmacology, Toxicology and Pharmaceutics; and Dentistry. The subset comprises approximately 85 million works, gives the deployed system its biomedical focus, and leaves the schema itself general purpose.
 
-For each work in the subset, a keyword generation module and an embedding generation module produce the per-work keywords and the dense embedding that the structured and dense retrieval stages depend on. A number of models for each were benchmarked to inform the selection process, as outlined in Section~\ref{subsec:evaluation-validation}.
+For each work in the subset, a keyword generation module and an embedding generation module produce the per-work keywords and the dense embedding that the structured and dense retrieval stages depend on. The keyword module prompts a language model to extract keyphrases from the title and abstract, instructed to return only spans that occur in the source; generation runs at temperature zero with an output cap of 400 completion tokens, no reasoning effort requested, and all other sampling parameters at their API defaults, and the prompt is reproduced in Appendix~\ref{app:prompts}. Temperature zero does not make the hosted endpoint deterministic, which is why the module's run-to-run stability is measured separately (Section~\ref{subsec:evaluation-validation}).
+% PENDING (the "10,000"): author confirms no candidate caps anywhere, so the
+% 10,000 supplied against the 'keyphrase cap' slot is unattributed. A codebase
+% grep for "10000" will settle what it is (or confirm it is stale). Also still
+% open: does the prompt bound how many keyphrases a single work receives? The embedding module encodes the concatenated title and abstract into a single dense vector. A number of models for each module were benchmarked to inform the selection, as outlined in Section~\ref{subsec:evaluation-validation}, and the selected models are reported with those results.
 
-The resulting data was transformed to the structure of the ontology, and loaded into Memgraph using their documented best practices. Memgraph was used as an in-memory graph database, on a virtual machine provisioned with sufficient memory to hold the full graph. Memgraph was chosen for the query performance of an in-memory store at this scale, for its MAGE library of graph algorithms, and for a licence compatible with the intended use. Because the graph resides in memory, the dense embeddings are quantised from 32-bit floating point to 8-bit integers to fit within the available memory (see Table~\ref{tab:bienc-deploy} for the resulting footprint).
+The resulting data was transformed to the structure of the ontology and loaded into Memgraph using its documented bulk-loading practices, with the full property-level mapping from OpenAlex fields to graph elements maintained as a YAML specification alongside the codebase. Memgraph was used as an in-memory graph database, on an Azure-hosted virtual machine provisioned with sufficient memory to hold the full graph (over 500\,GB of RAM). % VERIFY: confirm the current VM memory figure.
+Memgraph was chosen for the query performance of an in-memory store at this scale, for its MAGE library of graph algorithms, and for a licence compatible with the intended use. Because the graph resides in memory, the dense embeddings are quantised to 8-bit integers to fit within the available memory (see Table~\ref{tab:bienc-deploy} for the resulting footprint).
+% VERIFY (source precision + scheme): the author's "fp16 to int8" most likely
+% described the WEIGHT quantisation of oversized benchmark models (see the
+% evaluation-environment note in the Evaluation and Validation Design), not
+% these stored vectors. If the deployed vectors come from the hosted
+% bi-encoder's API, they are typically materialised as fp32 before the int8
+% cast. Check the ingestion code's dtype at the cast and state "from fpXX";
+% naming the conversion call also pins the scheme.
 
 \subsubsection{Structured Graph Retrieval}
 \label{subsubsec:structured-retrieval}
@@ -119,9 +163,19 @@ The first retrieval stage turns a natural-language query into a Memgraph-compati
 
 The query is first normalised, which collapses whitespace, resolves year hints into year bounds, and pulls out quoted phrases as exact-match terms, preserving case so that proper nouns and acronyms survive.
 
-The normalised query is then converted into an Intermediate Representation (IR) using an LLM via a forced tool call whose schema mirrors the representation. The IR couples two components: firstly, a flat list of typed entities, each carrying a type, value, confidence and exact flag; secondly, a recursive boolean expression over those entities using AND, OR and NOT. This design aims to decouple LLM-based intent extraction from deterministic query construction, taking the flexibility of the former whilst keeping the correctness guarantee of the latter, as noted in Section~\ref{sec:lr-nl2q}. The representation is then validated, dropping low-confidence entities and rejecting any query with no entities to anchor the traversal.
+The normalised query is then converted into an Intermediate Representation (IR) using an LLM via a forced tool call whose schema mirrors the representation; the system prompt and tool schema are reproduced in Appendix~\ref{app:prompts}. The IR couples two components: firstly, a flat list of typed entities, each carrying a type, value, confidence and exact flag; secondly, a recursive boolean expression over those entities using AND, OR and NOT. This design aims to decouple LLM-based intent extraction from deterministic query construction, taking the flexibility of the former whilst keeping the correctness guarantee of the latter, as noted in Section~\ref{sec:lr-nl2q}. The representation is then validated, rejecting any query with no entities to anchor the traversal.
+% NOTE: an earlier confidence-based entity drop was removed from the system
+% (author, July 2026). The IR field list above still includes confidence per
+% the schema description; reconcile with the Appendix C tool schema when it
+% lands (either the field remains and is unused for filtering, or remove it
+% from the field list here).
 
-The deterministic compiler turns the validated representation into Cypher. Rather than translating the boolean tree into nested graph patterns, it runs one subquery per entity, matching non-exact entities with BM25 over a text index and exact entities by direct property match. It then keeps each work whose matched entities satisfy the boolean expression.
+The deterministic compiler turns the validated representation into Cypher. Rather than translating the boolean tree into nested graph patterns, it runs one subquery per entity, matching non-exact entities with BM25 over a per-entity-type text index (Memgraph's text search module) and exact entities by direct property match. It then keeps each work whose matched entities satisfy the boolean expression.
+% RESOLVED: author confirms no candidate caps in the current compiler (the
+% May worked example's 10000/1000 limits are gone). The Appendix B worked
+% example must therefore match the current compiler's output. The stray
+% "10,000" from the fill answers remains unattributed --- see the note under
+% Ingestion and Storage.
 
 Formally, for each entity $e_{i}$, let $W_{i}$ be the set of works that match it, subject to the work-level filters. Satisfaction of an expression $\varphi$ by a work $w$, written $w \models \varphi$, is defined by recursion over the structure of $\varphi$,
 %
@@ -140,13 +194,26 @@ The leaves $e_{i}$ are the query's entities and $E$ is its full boolean expressi
 %
 where $\bigcup_{i} W_{i}$ is the set of works matching at least one entity. Restricting the universe in this way ensures that a NOT excludes works within the matched set rather than admitting the works that match nothing, and the recursion preserves arbitrary nesting of the operators.
 
-The compiled query runs against the database and returns the candidate pool together with its total match count. A worked example of a query, its intermediate representation, and the compiled Cypher is given in Appendix~B.
-% Note: this is what they should look like when compiled.
+The compiled query runs against the database and returns the candidate pool together with its total match count. A worked example of a query, its intermediate representation, and the compiled Cypher is given in Appendix~\ref{app:worked}.
+% PLACEHOLDER (appendix B): reference left as literal text until the worked
+% example appendix is added and wired into main.tex.
 
 \subsubsection{Dense Embedding Retrieval and Re-ranking}
 \label{subsubsec:dense-rerank}
 
-The second and third stages, dense embedding retrieval and cross-encoder re-ranking, are established techniques rather than novel contributions of this work, and their role within the cascade is described in Section~\ref{subsec:system-architecture}. The retrieve-then-rerank pattern they follow is reviewed in Section~\ref{sec:lr-dense}. The embedding and cross-encoder models are each selected by the benchmarking in Section~\ref{subsec:evaluation-validation}, and the generation and quantisation of the embeddings, together with the memory budget, are covered in Section~\ref{subsubsec:ingestion-storage}.
+The second and third stages are established techniques rather than novel contributions of this work, and the reasoning for their place in the cascade is given in Section~\ref{subsec:system-architecture}; the retrieve-then-rerank pattern they follow is reviewed in Section~\ref{sec:lr-dense}. Their configuration in this system is as follows.
+
+In the dense retrieval stage, the query is embedded at query time with the selected bi-encoder, and each candidate work carries the embedding precomputed for it at ingestion (Section~\ref{subsubsec:ingestion-storage}), stored at int8 in the graph. Similarity is cosine, computed over the candidate pool rather than through an approximate index, with the computation performed by Memgraph's built-in similarity function over the stored int8 vectors.
+% VERIFY: name the exact Memgraph procedure/module used (one grep of the query
+% code); that also settles how int8 is handled internally, which can otherwise
+% be left to the database as an implementation detail. The 100 candidates most similar to the query are retained.
+
+In the re-ranking stage, each retained candidate is paired with the query as a (query, title and abstract) input to the selected cross-encoder, and the single relevance score returned per pair determines the final ordering, with ties broken by citation count.
+% VERIFY: confirm no input truncation is applied to long title-and-abstract
+% pairs (or state the policy if one exists); author unsure. Not to be confused
+% with the benchmark-side weight quantisation noted in the evaluation design.
+
+Both models are selected by the benchmarking of Section~\ref{subsec:evaluation-validation} and reported with those results, and the generation and quantisation of the stored embeddings, together with the memory budget, are covered in Section~\ref{subsubsec:ingestion-storage}.
 
 \subsection{Evaluation and Validation Design}
 \label{subsec:evaluation-validation}
@@ -154,9 +221,11 @@ The second and third stages, dense embedding retrieval and cross-encoder re-rank
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=\linewidth]{images/retrieval_pipeline.png}
-    \caption{End-to-end representation of pipeline.}
+    \caption{End-to-end representation of the pipeline, from natural-language query to ranked results.}
     \label{fig:pipeline}
 \end{figure}
+% TODO (item 7, deferred by author): fig:pipeline to be redrawn to publication
+% standard; kept as-is for this pass.
 
 \begin{table}[htbp]
     \centering
@@ -173,30 +242,34 @@ The second and third stages, dense embedding retrieval and cross-encoder re-rank
         IR extraction        & Query-understanding accuracy & Hand-built stratified gold set & Entity match + logical equivalence   \\
         Dense bi-encoder     & Retrieval quality            & SciRepEval ad-hoc search       & nDCG                                 \\
         Cross-encoder        & Re-ranking quality           & SciRepEval ad-hoc search       & nDCG                                 \\
-        Embedding quantisation & Int8 accuracy cost         & SciRepEval ad-hoc search       & nDCG (fp32 vs.\ int8)                \\
+        Embedding quantisation & Int8 accuracy cost         & SciRepEval ad-hoc search       & nDCG (full precision vs.\ int8)      \\
+        Assembled cascade    & End-to-end retrieval behaviour (RQ3) & Curated realistic query set (\textit{[FILL: $n$]} queries) & Per-query characterisation + light relevance judgments \\
         \bottomrule
     \end{tabularx}
 \end{table}
 
-Each component designed in Section~\ref{subsec:component-design} is validated independently, against established benchmarks to allow for a comparison of models, from which one can be selected for the final system. This component-wise validation strategy, as summarised in Table~\ref{tab:validation-design}, acts as the counterpart to the design outlined in Section~\ref{subsec:component-design}, following the design and validation approach of Section~\ref{subsec:design-approach}. The outcome of each benchmark, including the model selected, is reported in the Data and Results section.
+Each component designed in Section~\ref{subsec:component-design} is validated independently, against established benchmarks to allow for a comparison of models, from which one can be selected for the final system. This component-wise validation strategy, as summarised in Table~\ref{tab:validation-design}, acts as the counterpart to the design outlined in Section~\ref{subsec:component-design}, following the design and validation approach of Section~\ref{subsec:design-approach}. The table's final row is the system-level evaluation of Section~\ref{subsubsec:system-level}, which validates the composed cascade rather than a component. The outcome of each benchmark, including the model selected, is reported in the Data and Results section. Self-hosted candidates were evaluated on a single 8\,GB GPU, and models exceeding its memory at their native precision were run with quantised weights, with the precision used annotated per model in the results tables.
+% VERIFY: GPU spec (author: "8gb"); confirm the card if worth naming.
 
 \subsubsection{Keyword Generation}
 \label{subsubsec:keyword-generation}
 
-The keyword generation module of Section~\ref{subsubsec:ingestion-storage} is evaluated against three keyphrase datasets, namely KPBiomed, OAGKX, and PubMedAKE, each of which pairs documents with reference keyphrases. Reference keyphrases are split into present (extractive) keyphrases, which occur verbatim in the source text, and absent (abstractive) keyphrases, which do not and so must be generated. Each is scored by F1@5 with light stemming, so that a keyphrase and its stem count as a match while a different word of the same meaning does not. The present/absent split isolates faithful extraction from generation, which matters because a language-model extractor can hallucinate keyphrases the source does not contain. 
+The keyword generation module of Section~\ref{subsubsec:ingestion-storage} is evaluated against three keyphrase datasets, namely KPBiomed, OAGKX, and PubMedAKE, each of which pairs documents with reference keyphrases. Reference keyphrases are split into present (extractive) keyphrases, which occur verbatim in the source text, and absent (abstractive) keyphrases, which do not and so must be generated. Each is scored by F1@5 with light stemming, so that a keyphrase and its stem count as a match while a different word of the same meaning does not. The present/absent split isolates faithful extraction from generation, which matters because a language-model extractor can hallucinate keyphrases the source does not contain.
 
-The candidates place a large-language-model generator, GPT-5.4-nano, against established statistical and neural baselines: TF-IDF, YAKE, TextRank, and MultipartiteRank as statistical or graph-based extractors; KeyBERT-MiniLM and KBIR-inspec as neural extractors; and KeyBART as a fine-tuned generative model. The purely extractive baselines can match only present keyphrases by construction, whereas the generative models can also attempt absent ones, so the present/absent split doubles as a comparison between the two families.
+The candidates place a large-language-model generator, GPT-5.4-nano, against established statistical and neural baselines: TF-IDF, YAKE, TextRank, and MultipartiteRank as statistical or graph-based extractors; KeyBERT-MiniLM and KBIR-inspec as neural extractors; and KeyBART as a fine-tuned generative model. The purely extractive baselines can match only present keyphrases by construction, whereas the generative models can also attempt absent ones, so the present/absent split doubles as a comparison between the two families. The LLM generator is sampled at temperature zero, which does not make the hosted endpoint deterministic, so its stability is additionally measured over repeated runs; the baselines decode deterministically (greedy decoding for the generative models, fixed score-based tie-breaking for the statistical extractors) and are reproducible by construction.
 
 \subsubsection{IR Extraction}
 \label{subsubsec:ir-extraction}
 
 This benchmark measures how well the model turns an unstructured query into the structured nested boolean representation, the IR (Section~\ref{subsubsec:structured-retrieval}). The model's output is compared against a correct IR written by hand, an approach known as intrinsic evaluation, rather than judging the model by the quality of the final search results. This is done to separate the two possible sources of error. If the system were judged only on its final results, a poor result could come from a mistake in the translation step or in the later search stages, with no way to tell which. Comparing against a correct IR measures the translation step on its own.
 
-The benchmark was built by hand, because the literature (Section~\ref{sec:lr-gap}) found that no existing benchmark covers this task in the scholarly domain. It was constructed as follows:
+The benchmark was built by hand, because the literature (Section~\ref{sec:lr-gap}) found that no existing benchmark covers this task in the scholarly domain. It comprises 116 queries stratified into ten structural types (Table~\ref{tab:ir-stratum}), % VERIFY: 116 is the sum of the per-stratum counts in tab:ir-stratum; confirm against the gold set.
+and was constructed as follows:
 
 \begin{itemize}
     \item A set of sample queries was curated to match the vocabulary expected of users, including technical keywords, researcher names, institutions, and venues, so that every entity type the system supports is exercised. The queries span a range of difficulty, from a single topic, through queries that combine topics with AND, OR, and NOT, up to queries that group these with brackets. The simple queries were taken from an existing retrieval dataset, SciRepEval, and the harder ones, which everyday queries rarely contain, were based on the structure of expert queries written for systematic reviews, the exhaustive evidence searches common in fields like medicine.
-    \item For each query, the correct nested boolean representation was written by hand. Where a query was ambiguous in how its terms should be grouped, the wording was tightened or brackets were added, so that each query has a single intended answer.
+    \item For each query, the correct nested boolean representation was written by hand by the author. % VERIFY: confirm single-author annotation; this is also flagged as a limitation for Section V (item 15).
+    Where a query was ambiguous in how its terms should be grouped, the wording was tightened or brackets were added, so that each query has a single intended answer.
 \end{itemize}
 
 Each model is then scored against the hand-written answers on two parts. The first is the entities, the individual terms the model pulled out. These are compared to the correct terms allowing small surface differences, such as a word and its stem, but not accepting a different word of the same meaning, since this stage is meant to capture the terms the user actually wrote rather than paraphrase them. The second is the expression, the way those terms are combined with AND, OR, and NOT. This is judged by logical equivalence, meaning the answer counts as correct if it selects the same papers as the hand-written one, even when written in a different but equivalent form. The same request can be arranged in more than one valid way, for example A AND B is the same as B AND A. Several candidate models are scored this way, with the selected model and the scores reported in the Data and Results section.
@@ -204,23 +277,28 @@ Each model is then scored against the hand-written answers on two parts. The fir
 \subsubsection{Dense Retrieval}
 \label{subsubsec:dense-retrieval}
 
-The dense bi-encoder is evaluated on the ad-hoc search tasks of SciRepEval, namely NFCorpus, TREC-CoVID, and Search, measured by nDCG. SciRepEval is an established benchmark for scientific document retrieval (Section~\ref{sec:lr-bench}), and nDCG is the standard measure of ranking quality, which keeps the stage comparable to prior work. 
+The dense bi-encoder is evaluated on the ad-hoc search tasks of SciRepEval, namely NFCorpus, TREC-CoVID, and Search, measured by nDCG. SciRepEval is an established benchmark for scientific document retrieval (Section~\ref{sec:lr-bench}), and nDCG is the standard measure of ranking quality, which keeps the stage comparable to prior work.
 
 The candidates comprise general-purpose embedders (Qwen3-Embedding at 0.6B and 4B, EmbeddingGemma-300M, mxbai-embed-large-v1, BGE-M3, and the hosted text-embedding-3-small) alongside the scientific fine-tuned SPECTER2 in both its base and ad-hoc-query variants. The set contrasts general-purpose against domain-tuned encoders, and self-hostable against paid-API models (text-embedding-3-small being the sole hosted option), the two axes along which the results divide.
 
 \subsubsection{Cross-Encoder Re-ranking}
 \label{subsubsec:cross-encoder}
 
-The cross-encoder is evaluated on the same SciRepEval ad-hoc search tasks under the same metric, by re-ranking the retrieved candidates, so the gain it adds can be read directly against the bi-encoder alone. 
+The cross-encoder is evaluated on the same SciRepEval ad-hoc search tasks under the same metric, by re-ranking the retrieved candidates, so the gain it adds can be read directly against the bi-encoder alone.
 
 Thirteen rerankers are compared: commercial APIs (Cohere Rerank 4.0 in its Pro and Fast tiers); self-hostable neural rerankers (the Qwen3-Reranker at 0.6B and 4B, jina-reranker-v2, and mxbai-rerank-large-v1); a biomedical domain-specific model (MedCPT); and older cross-encoder baselines (the ms-marco-MiniLM and bge-reranker families, and gte-reranker-modernbert-base). This spread lets the results separate model family and recency from raw parameter count, and general-purpose rerankers from the domain-specific one.
 
 \subsubsection{Embedding Quantisation}
 \label{subsubsec:embedding-quantisation}
 
-Quantising the embeddings to int8 (Section~\ref{subsubsec:ingestion-storage}) trades precision for memory, so its cost is measured rather than assumed. The bi-encoder evaluation above is repeated with the embeddings held at int8 and compared against the full-precision result, and the resulting difference in nDCG is the accuracy cost attributed to the quantisation.
+Quantising the embeddings to int8 (Section~\ref{subsubsec:ingestion-storage}) trades precision for memory, so its cost is measured rather than assumed. The bi-encoder evaluation above is repeated with the embeddings held at int8 and compared against the same embeddings at their unquantised precision, and the resulting difference in nDCG is the accuracy cost attributed to the quantisation. This ablation concerns the stored vectors, and is distinct from the weight quantisation used to fit oversized self-hosted candidates on the evaluation GPU, which affects the model rather than its output and is annotated per model in the results tables.
 
 \subsubsection{System-Level Evaluation}
 \label{subsubsec:system-level}
 
-The composed system has no off-the-shelf end-to-end benchmark, which reflects the gap identified in Section~\ref{sec:lr-limitations}. Under the separation of concerns above, however, the system's behaviour follows from its parts. The structured stage returns the papers matching the boolean query, established by the IR and keyword evaluations together with the deterministic compiler, and the dense stages rank those papers, established by their benchmarks. The component results therefore stand as the primary evidence for the system, subject to two limits stated plainly. First, the dense models are benchmarked on a full corpus rather than on the candidate set they rank within the cascade, so their measured quality is a close proxy for their role here rather than a direct measurement of it. Second, the system returns only papers that match the boolean query, so a paper that is relevant but does not match is not retrieved, which is the precision-oriented behaviour the design intends rather than a defect. A system-level evaluation confirms both points directly: the assembled cascade is compared against a retrieval-augmented LLM and Google Scholar over a curated set of realistic queries, assessed qualitatively per query and with light relevance judgments over the returned results. This comparison is the instrument for RQ3; its results appear in Section~\ref{sec:results-system} and its analysis in Section~\ref{subsec:rq3}.
+The composed system has no off-the-shelf end-to-end benchmark, which reflects the gap identified in Section~\ref{sec:lr-limitations}. Under the separation of concerns above, however, the system's behaviour follows from its parts. The structured stage returns the papers matching the boolean query, established by the IR and keyword evaluations together with the deterministic compiler, and the dense stages rank those papers, established by their benchmarks. The component results therefore stand as the primary evidence for the system, subject to two limits stated plainly. First, the dense models are benchmarked on a full corpus rather than on the candidate set they rank within the cascade, so their measured quality is a close proxy for their role here rather than a direct measurement of it. Second, the system returns only papers that match the boolean query, so a paper that is relevant but does not match is not retrieved, which is the precision-oriented behaviour the design intends rather than a defect.
+
+A system-level evaluation confirms both points directly by comparing three systems over the same query set: the assembled cascade, a retrieval-augmented LLM (\textit{[FILL: the system and configuration used, e.g.\ model, retrieval source, settings]}), and Google Scholar. The query set comprises \textit{[FILL: $n$, suggest 20--30]} queries, selected to \textit{[FILL: selection criteria, e.g.\ span the structural strata of Section~\ref{subsubsec:ir-extraction} and reflect the biomedical workflows of the industry partner's users]}. For each query, the top \textit{[FILL: $k$, suggest 10--20]} results from each system are recorded and characterised qualitatively, what each system surfaces and what it misses, with light relevance judgments assigned by \textit{[FILL: who judges, e.g.\ the author, or the author plus an industry-partner researcher]} on a \textit{[FILL: relevance scale, e.g.\ binary or 0--2 graded]} scale. This comparison is the instrument for RQ3; its results appear in Section~\ref{sec:results-system} and its analysis in Section~\ref{subsec:rq3}.
+% NOTE (user decision pending): the experiment has not yet been run, so the
+% FILL slots above are design decisions still to be made, not just missing
+% facts. The bracketed suggestions are starting points, not commitments.

@@ -5,21 +5,37 @@
 % the Conclusion (Section~VI), left as a literal numeral until that section is written
 % and wired into main.tex; see the PLACEHOLDER note at the end of this file.
 
+% Introduction section for the ESIPS honours thesis.
+% Intended to be pulled into main.tex via \input{introduction} (or \include).
+% Assumes an IEEEtran two-column document; contains no preamble.
+% Section cross-references use \ref{} to auto-numbered labels. The one exception is
+% the Conclusion (Section~VI), left as a literal numeral until that section is written
+% and wired into main.tex; see the PLACEHOLDER note at the end of this file.
+%
+% Rewrite notes (July 2026 revision):
+%   - Para 2 (industry/deployment context) is new; verify the factual claims
+%     marked VERIFY below before submission.
+%   - RQ1 now says "modern language models" rather than "modern AI"; the answer
+%     phrasing in Section V-A3 should be updated to match.
+%   - Contributions are stated explicitly (para 4) to give the Originality
+%     criterion something to anchor to.
+ 
 \section{Introduction}
 \label{sec:intro}
-
-A literature search asks two things of a retrieval system: firstly, to find papers that precisely match a set of stated constraints; secondly, to find papers that are about what the user means. These map onto two retrieval paradigms that have proven difficult to reconcile. Structured retrieval, being exact keyword and boolean matching over typed metadata, answers a query precisely, in that a paper either satisfies the constraints or it does not. Semantic retrieval, being dense vector embeddings that rank documents by meaning, recovers relevance that exact terms miss, but returns what lies nearest in a learned space rather than what provably matches. The two serve different needs. Assembling an exhaustive evidence base, as in a systematic review, demands the precision of the former, while exploring an unfamiliar area rewards the recall of the latter. Deployed literature-search engines force a choice between them.
-
-The aim of this thesis is to develop a scholarly search system that can search based on nested entity queries, and semantic relationships via a three-stage mechanism: 1) Structured Graph Retrieval; 2) Bi-encoder semantic retrieval; 3) Cross-encoder semantic re-ranking. Accordingly, the three research questions that will form an answer to this include:
-
+ 
+A literature search asks two things of a retrieval system: firstly, to find the papers that precisely match a set of stated constraints; secondly, to find the papers that are about what the user means. These map onto two retrieval paradigms that have proven difficult to reconcile. Structured retrieval, being exact keyword and Boolean matching over typed metadata, answers a query deterministically: a paper either satisfies the constraints or it does not, and the same query returns the same answer. Semantic retrieval, being dense vector embeddings that rank documents by meaning, recovers relevance that exact terms miss, but returns what lies nearest in a learned space rather than what provably matches. The two serve different needs. Assembling an evidence base, as in a systematic review, demands the determinism and auditability of the former; exploring an unfamiliar area rewards the recall of the latter. Deployed literature-search engines force a choice between them.
+ 
+This thesis addresses that gap in a deployed setting. The work was conducted with an industry partner, Latent Knowledge, whose users are biomedical researchers, and the system it documents is in production: a typed scholarly knowledge graph of approximately 85 million biomedical works, built from OpenAlex and queried through a three-stage retrieval cascade, has served a limited user base since the partner's v1 launch. % VERIFY: confirm the production v1 configuration runs all three retrieval stages, and whether a launch month should be named.
+The deployment shapes the research in two ways. It grounds every model choice in the constraints of a real system, where memory footprint, query latency, and licensing weigh against raw accuracy, and it fixes the corpus at biomedical literature while the schema and architecture remain general purpose.
+ 
+The aim of this thesis is therefore to design, build, and evaluate a scholarly search system that reconciles the two paradigms rather than choosing between them. Retrieval proceeds in three stages: structured graph retrieval over the knowledge graph produces a candidate set that provably satisfies the query's nested Boolean constraints; bi-encoder dense retrieval ranks that set by semantic similarity; and cross-encoder re-ranking orders the final results. Three research questions structure the evaluation, one for each layer of the design:
+ 
 \begin{enumerate}
-    \item To what extent can modern AI construct the artefacts required for deterministic structured graph retrieval of a candidate set of papers: the per-work keyword index extracted offline from the literature, and the intermediate representation formulated from the natural-language query;
-    \item How well do current bi-encoders and cross-encoders perform on semantic ad-hoc search tasks on scientific retrieval benchmarks;
-    \item How does the three-stage mechanism differ from existing systems, and what explains those differences?
+    \item To what extent can modern language models construct the two artefacts that deterministic structured graph retrieval requires, namely the per-work keyword index extracted offline from the corpus, and the intermediate representation translated from each natural-language query?
+    \item How well do current bi-encoders and cross-encoders perform semantic ad-hoc search on scientific retrieval benchmarks?
+    \item How do the results of the three-stage cascade differ from those of existing search systems, and what explains the differences?
 \end{enumerate}
-
-The remainder of this report is organised as follows. Section~\ref{sec:litreview} reviews the literature on scholarly retrieval, positioning the design against dense retrieval, graph-augmented methods, and structured-query translation, and surveying the systems and benchmarks currently available. Section~\ref{sec:research-design} presents the research design: the system architecture, the graph schema and ingestion pipeline, the design of each retrieval stage, and the methodology used to validate them. Section~\ref{sec:data-results} reports the outcome of each component benchmark, which Section~\ref{sec:analysis-discussion} then analyses against the three research questions. Section~VI draws conclusions and identifies future work.
-
-% PLACEHOLDER (conclusion): 'Section~VI' above is left as a literal numeral because
-% the Conclusion and Future Work section is not yet in the build. Replace it with
-% Section~\ref{sec:conclusion} once that section is written and \input into main.tex.
+ 
+In answering these, the thesis makes four contributions: (i) a typed scholarly knowledge graph of approximately 85 million works, with a documented schema and ingestion pipeline from the OpenAlex snapshot; (ii) a natural-language query interface that decouples LLM-based intent extraction from deterministic Cypher compilation through a JSON intermediate representation; (iii) a hand-built, stratified benchmark for the natural-language-to-IR translation task, which no existing benchmark covers; and (iv) component-level evaluations of keyword extractors, bi-encoders, and cross-encoders that select the deployed models and make the accuracy and deployment trade-offs of each choice explicit.
+ 
+The remainder of this report is organised as follows. Section~\ref{sec:litreview} reviews the literature on scholarly retrieval, positioning the design against dense retrieval, graph-augmented methods, and structured-query translation, and surveying the systems and benchmarks currently available. Section~\ref{sec:research-design} presents the research design: the system architecture, the graph schema and ingestion pipeline, the design of each retrieval stage, and the methodology used to validate them. Section~\ref{sec:data-results} reports the outcome of each component benchmark, which Section~\ref{sec:analysis-discussion} then analyses against the three research questions. Section~\ref{sec:conclusion} draws conclusions and identifies future work.

@@ -1,0 +1,341 @@
+% =============================================================================
+%  Appendix C: Prompts and Tool Schemas
+%  Body-only section file: no \documentclass, no \begin{document}; \input it.
+%
+%  WIRING (already done in this repo; recorded here for reference):
+%   (a) PREAMBLE: listings is already loaded (matlab-prettifier pulls it in; see
+%       preamble.sty comment "matlab-prettifier already loads the listings
+%       package"), so no \usepackage{listings} line was added. The \lstset below
+%       is self-contained and supplies all configuration this file needs.
+%   (b) MAIN.TEX: after \appendix (which activates the custom \section patch in
+%       preamble.sty:307), this file is \input as the third appendix, so its
+%       \section{Prompts and Tool Schemas} auto-prints "Appendix C: ..." and the
+%       \label below resolves to the letter "C". Reordering the \input list
+%       relettering everything automatically.
+%   (c) CROSS-REFERENCES: research_design.tex refers here via Appendix~\ref{app:prompts}
+%       (dynamic), so the letter always matches this appendix's position.
+%
+%  FIDELITY: every prompt / schema below is reproduced VERBATIM from source.
+%  Nothing was corrected. British spellings ("recognised") and any wording that
+%  reads like a typo are intentional and left exactly as in the code.
+%
+%  REDACTIONS: secret-shaped values are replaced by clearly-marked placeholders
+%  (<AZURE_OPENAI_ENDPOINT>, <AZURE_OPENAI_API_KEY>). No real keys/endpoints
+%  appear in this file. (A live key is committed in the source repo's .env and
+%  .env.example; flagged separately to the author. It is NOT reproduced here.)
+%
+%  RENDERING: the appendix region is \onecolumn, so the listings below are plain
+%  (non-floating) lstlisting blocks; they already span the full text width and,
+%  unlike figure*, break cleanly across pages (the extraction and IR prompts are
+%  too long to fit a single float). If you restore two-column appendices, wrap
+%  the (short) JSON tool schema in figure* to span both columns, but keep the
+%  long prompt listings unfloated so they can page-break.
+% =============================================================================
+
+\lstset{
+  basicstyle=\ttfamily\footnotesize,
+  breaklines=true,
+  frame=single,
+  columns=fullflexible,
+  keepspaces=true,
+  showstringspaces=false,
+  upquote=true,
+  extendedchars=true,
+  % The one non-ASCII char in the reproduced prompts is a U+2014 em-dash (in the
+  % IR system prompt). The document uses OT1 Computer Modern (no fontenc/lmodern
+  % in preamble.sty), where \textemdash inside \ttfamily wrongly prints "|", so
+  % force the roman em-dash glyph to keep the reproduction faithful.
+  literate={—}{{\normalfont\textemdash}}1
+}
+
+% Dynamic heading: \appendix (main.tex) makes this print "Appendix C: Prompts and
+% Tool Schemas" and adds its own ToC entry; \label resolves to the letter via \ref.
+\section{Prompts and Tool Schemas}
+\label{app:prompts}
+
+This appendix reproduces, verbatim, the language-model prompts and the forced
+tool-call schema used by the two generation stages evaluated in this report: the
+keyword-generation module (Section~\ref{sec:research-design}) and the
+natural-language-to-Intermediate-Representation (NL$\rightarrow$IR) extractor.
+
+% -----------------------------------------------------------------------------
+\subsection*{Keyword-generation prompt and configuration}
+% -----------------------------------------------------------------------------
+
+The keyword module sends a fixed system prompt plus a per-work user message to an
+Azure OpenAI \texttt{gpt-5.4-nano} deployment and parses a JSON array of
+keyphrases from the completion. The system prompt reproduced below is the
+original \emph{extraction} variant (\lstinline|prompt_variant: extraction|), which
+is the deployed procedure vendored from production and the one described in the
+report body.
+
+% NOTE (explicit, not silent): the source config.yaml currently sets
+%   prompt_variant: generation_tight   (a benchmark-only "Run B" refinement whose
+% text lives in prompts.json -> "generation_system"). Two further variants exist
+% in code (extraction | generation | generation_tight). Per the author's decision
+% only the original *extraction* prompt is reproduced here; the generation
+% variants are not.
+
+\begin{lstlisting}
+Extract the most relevant keywords from the provided scientific text for search and indexing purposes and return them as a JSON list.
+
+Include only technical terms, concepts, or phrases central to the content of the text. Avoid generic or overly broad words unless they are critical to the subject matter. Ensure that the extracted keywords are concise and representative of the scientific content.
+
+# Steps
+
+1. Analyze the provided scientific text for its primary topics, concepts, and technical terms.
+2. Identify specific keywords or phrases that summarize the main ideas or are important for searchability.
+3. Remove any non-specific, redundant, or irrelevant terms (e.g., articles, conjunctions, or overly generic terms like "studies" or "research").
+4. Return the extracted keywords as a JSON array.
+
+# Output Format
+
+```json
+[
+    "keyword1",
+    "keyword2",
+    "...",
+    "keywordN"
+]
+```
+
+# Examples
+
+**Input:**
+"Photosynthesis is the process by which green plants and some other organisms use sunlight to synthesize foods with the aid of chlorophyll pigments and carbon dioxide. Plants absorb carbon dioxide (CO2) from the atmosphere and water (H2O) from the soil to produce glucose and oxygen (O2). The process involves the transformation of light energy into chemical energy stored in glucose molecules."
+
+**Output:**
+```json
+[
+    "photosynthesis",
+    "green plants",
+    "chlorophyll pigments",
+    "carbon dioxide",
+    "glucose",
+    "oxygen",
+    "light energy",
+    "chemical energy"
+]
+```
+
+**Input:**
+"The human genome is composed of approximately 3 billion base pairs of DNA, containing the instructions for building and maintaining an organism. Genes, made of DNA, encode proteins, which perform most of the work in cells. Genomic sequencing methods have advanced significantly, allowing for a better understanding of the genetic basis of diseases and traits."
+
+**Output:**
+```json
+[
+    "human genome",
+    "base pairs",
+    "DNA",
+    "genes",
+    "proteins",
+    "genomic sequencing",
+    "genetic basis"
+]
+```
+\end{lstlisting}
+
+\noindent The user message is a one-line template; the system prompt has no
+interpolation slots (the \lstinline|.format(n=n)| call at the call site is a
+no-op for this variant, since it contains no braces):
+
+\begin{lstlisting}
+Text:
+{text}
+\end{lstlisting}
+
+\noindent The single slot \lstinline|{text}| is filled with the work's title and
+abstract joined as \lstinline|"{title}\n\n{abstract}"|, passed through one
+citation-cleaning pass and truncated to \texttt{max\_text\_chars} $=6000$
+characters before sending.
+
+\medskip
+\noindent Exact call configuration (from code; parameters marked
+\texttt{[REDACTED]} are secret-shaped and replaced by placeholders):
+
+\begin{lstlisting}
+API                   : AsyncAzureOpenAI(...).chat.completions.create(...)
+model  (deployment)   : cfg["deployment"]
+                        <- env AZURE_OPENAI_DEPLOYMENT  (Azure gpt-5.4-nano deployment)
+                        <- config.yaml value: "<AZURE_DEPLOYMENT>"  (placeholder)
+                        <- code fallback default: "gpt-5.4-nano"
+temperature           : 0.0
+max_completion_tokens : 400            (config.yaml; code fallback 300)
+api_version           : "2024-12-01-preview"
+azure_endpoint        : <AZURE_OPENAI_ENDPOINT>   [REDACTED: internal URL, from env/.env]
+api_key               : <AZURE_OPENAI_API_KEY>    [REDACTED: env only, never in code]
+top_p, seed, n,
+response_format,
+reasoning_effort,
+tool_choice           : (not sent; left at API defaults)
+
+Client / retries      : AzureOpenAI client max_retries = 0; custom backoff with
+                        max_retries = 8, empty_retries = 2 (not API parameters)
+Output/parsing caps   : max_keywords (n) = 20; max_text_chars = 6000
+\end{lstlisting}
+
+\noindent\textit{Provenance. Source:}
+\lstinline|keyword_benchmark/benchmark/reference/extract_keywords.py|
+\textit{, system prompt} \lstinline|_SYSTEM_PROMPT| \textit{lines 37--94, user
+template} \lstinline|_USER_PROMPT| \textit{line 96, live call site lines
+345--387; call parameters from} \lstinline|benchmark/config.yaml| \textit{and}
+\lstinline|_load_azure_config()| \textit{lines 183--202. Working copy}
+\lstinline|/home/jordanguyot/homeserver/lk_ws/keyword_benchmark| \textit{is not a
+git repository, so no commit hash is available (file dated 2026-06-04); the
+version-controlled upstream is} \lstinline|litview-keyword-benchmark| \textit{and
+the extraction procedure itself is vendored from production} \lstinline|litview-kg|\textit{.}
+
+% -----------------------------------------------------------------------------
+\subsection*{IR-extraction system prompt}
+% -----------------------------------------------------------------------------
+
+The normalised natural-language query is converted to the Intermediate
+Representation by a single forced tool call. The system prompt below is sent as
+the \texttt{system} message; the \texttt{user} message is the raw (already
+normalised) query string, with no additional templating.
+
+% PRODUCTION-PARITY FLAG (do not silently treat as the production prompt):
+% This prompt is VENDORED AND ADAPTED (trimmed) from the production extractor
+% litview-qapi/api/pipeline/extract.py :: LLMExtractor. It is NOT byte-identical
+% to production. Kept: the build_works_search_ir forced tool call + expression
+% shape-normalisation. Dropped from production: quoted/exact-phrase marking,
+% casing normalisation, confidence gating, and the OR-fallback; the prompt is
+% trimmed to the benchmark's "boolean-core" scope and routes year/type/etc. to
+% the (ignored) filter fields. See DECISIONS.md D21 and README.md in the
+% nl_to_ir_benchmark repo. The version below is the benchmark (homeserver) copy.
+
+\begin{lstlisting}
+You are a search-intent extractor for an academic literature knowledge graph.
+Given a natural-language query, call the build_works_search_ir tool to extract the BOOLEAN
+CORE of the query: a typed list of entities and a boolean expression tree over them.
+
+Entity types:
+- "keyword": a concept, technique, method, disease, or topic. A single recognised name is ONE
+  keyword even if multi-word (e.g. "single-cell RNA sequencing", "CAR-T cell therapy",
+  "gut microbiome", "CRISPR-Cas9"). A phrase naming two separable concepts is split into
+  separate keywords (e.g. "deep learning for medical imaging" -> "deep learning" AND
+  "medical imaging").
+- "person": author names. Use the COMPLETE name exactly as given; never split or truncate
+  hyphenated surnames. Exactly one person entity per author mentioned.
+- "venue": journal/conference names (cue: "published in <venue>").
+- "institution": universities, labs, research institutes (cue: "from the <institution>").
+
+Expression tree (how the entities combine):
+- Leaf: {"node_type": "entity_ref", "idx": <index into entities>}
+- Boolean: {"node_type": "bool_expr", "op": "and"|"or"|"not", "children": [...]}; NOT has
+  exactly 1 child, AND/OR have 2+ children.
+- Single entity -> {"node_type": "entity_ref", "idx": 0}.
+- Concepts that must co-occur -> AND. Alternatives ("or", "either ... or") -> OR.
+- Exclusion ("not X", "excluding X", "but not X") -> include X as an entity and wrap its ref
+  in NOT inside an AND with the positive entities. When a SUBTYPE is excluded ("stem cells but
+  not embryonic"), the negated entity is the specific subtype ("embryonic stem cells").
+- Respect grouping/precedence: "(A or B) and C" -> AND(OR(ref_A, ref_B), ref_C), NOT
+  OR(ref_A, AND(ref_B, ref_C)).
+
+Out of scope — DO NOT add these as entities or to the expression. If present, route them to
+the filters/limit/order_by fields (they are ignored downstream), never as keyword entities:
+- year/date ranges ("since 2020"), work type, open-access status, citation thresholds,
+  title substrings, sorting, and result-count limits.
+
+Extract exactly what the query states. Do not invent entities.
+\end{lstlisting}
+
+\noindent The call forces this single tool with
+\lstinline|tool_choice={"type": "function", "function": {"name": "build_works_search_ir"}}|,
+sending \lstinline|max_completion_tokens=2048|; \texttt{temperature} is sent only
+when non-zero (default \texttt{0.0}, so omitted), as \texttt{gpt-5} reasoning
+deployments reject a non-default temperature.
+
+\medskip
+\noindent\textit{Provenance. Source:}
+\lstinline|nl_to_ir_benchmark/nl2ir_eval/azure_extractor.py|\textit{,}
+\lstinline|_SYSTEM_PROMPT| \textit{lines 104--138, forced-tool call site (}\lstinline|_call_model|\textit{)
+lines 247--267. Working copy}
+\lstinline|/home/jordanguyot/homeserver/lk_ws/nl_to_ir_benchmark| \textit{is not a
+git repository, so no commit hash is available (file dated 2026-06-23). This is
+the benchmark copy, adapted/trimmed from the production extractor}
+\lstinline|litview-qapi/api/pipeline/extract.py :: LLMExtractor| \textit{(see}
+\lstinline|DECISIONS.md| \textit{D21); it is not byte-identical to the deployed
+production prompt.}
+
+% -----------------------------------------------------------------------------
+\subsection*{IR tool schema}
+% -----------------------------------------------------------------------------
+
+The IR extractor forces the model to call a single function,
+\lstinline|build_works_search_ir|, whose parameter schema mirrors the
+Intermediate Representation. The complete tool definition sent to the API is
+reproduced below as JSON (reconstructed from the source Python literal: the
+schema reference is inlined and the multi-line \lstinline|description| strings
+are concatenated exactly as Python joins them at runtime). Only the
+\lstinline|entities| and \lstinline|expression| fields are scored; the
+\lstinline|filters|, \lstinline|limit| and \lstinline|order_by| fields exist so
+the model routes out-of-scope constraints there instead of inventing keyword
+entities.
+
+\begin{lstlisting}[language=]
+{
+  "type": "function",
+  "function": {
+    "name": "build_works_search_ir",
+    "description": "Extract structured search intent from a natural-language query about academic works. Return the typed entity list and the boolean expression tree combining them.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "entities": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["keyword", "person", "venue", "institution"]
+              },
+              "value": { "type": "string" },
+              "confidence": { "type": "number", "minimum": 0.0, "maximum": 1.0 }
+            },
+            "required": ["type", "value", "confidence"]
+          }
+        },
+        "expression": {
+          "description": "Boolean expression tree defining how entities combine. Leaf nodes: {\"node_type\": \"entity_ref\", \"idx\": <int>} referencing entities by index. Interior nodes: {\"node_type\": \"bool_expr\", \"op\": \"and\"|\"or\"|\"not\", \"children\": [...]}. NOT must have exactly 1 child. AND/OR must have 2+ children. For a single entity, use {\"node_type\": \"entity_ref\", \"idx\": 0}.",
+          "type": "object"
+        },
+        "filters": {
+          "type": "object",
+          "properties": {
+            "year": {
+              "type": "object",
+              "properties": {
+                "gte": { "type": "integer" },
+                "lte": { "type": "integer" }
+              }
+            },
+            "type": { "type": "array", "items": { "type": "string" } },
+            "open_access_status": { "type": "array", "items": { "type": "string" } },
+            "citation_count": {
+              "type": "object",
+              "properties": { "gte": { "type": "integer", "minimum": 0 } }
+            },
+            "title_contains": { "type": "string" }
+          }
+        },
+        "limit": { "type": "integer", "minimum": 1, "maximum": 100 },
+        "order_by": {
+          "type": "string",
+          "enum": ["relevance", "most_recent", "oldest", "most_cited", "least_cited"]
+        }
+      },
+      "required": ["entities", "expression"]
+    }
+  }
+}
+\end{lstlisting}
+
+\noindent\textit{Provenance. Source:}
+\lstinline|nl_to_ir_benchmark/nl2ir_eval/azure_extractor.py|\textit{,}
+\lstinline|_EXTRACTION_TOOL| \textit{(function wrapper) lines 91--101 and}
+\lstinline|_EXTRACTION_TOOL_SCHEMA| \textit{(parameters) lines 47--89. Working
+copy} \lstinline|/home/jordanguyot/homeserver/lk_ws/nl_to_ir_benchmark|
+\textit{is not a git repository (file dated 2026-06-23); the schema "mirrors the
+production WorksSearchIR".}
