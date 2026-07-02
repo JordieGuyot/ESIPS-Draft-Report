@@ -110,21 +110,7 @@ A biomedical subset was then selected from this snapshot by filtering on the Ope
 
 For each work in the subset, a keyword generation module and an embedding generation module produce the per-work keywords and the dense embedding that the structured and dense retrieval stages depend on. A number of models for each were benchmarked to inform the selection process, as outlined in Section~\ref{subsec:evaluation-validation}.
 
-\begin{table}[htbp]
-    \centering
-    \caption{The memory allocation budget}
-    \label{tab:memory-budget}
-    % TODO: populate with the memory allocation budget figures.
-    \begin{tabular}{ll}
-        \toprule
-        \textbf{Component} & \textbf{Allocation} \\
-        \midrule
-        \multicolumn{2}{c}{\emph{Budget figures to be inserted.}} \\
-        \bottomrule
-    \end{tabular}
-\end{table}
-
-The resulting data was transformed to the structure of the ontology, and loaded into Memgraph using their documented best practices. Memgraph was used as an in-memory graph database, on a virtual machine provisioned with sufficient memory to hold the full graph. Memgraph was chosen for the query performance of an in-memory store at this scale, for its MAGE library of graph algorithms, and for a licence compatible with the intended use. Because the graph resides in memory, the dense embeddings are quantised from 32-bit floating point to 8-bit integers to fit within the available memory, the budget for which is given in Table~\ref{tab:memory-budget}.
+The resulting data was transformed to the structure of the ontology, and loaded into Memgraph using their documented best practices. Memgraph was used as an in-memory graph database, on a virtual machine provisioned with sufficient memory to hold the full graph. Memgraph was chosen for the query performance of an in-memory store at this scale, for its MAGE library of graph algorithms, and for a licence compatible with the intended use. Because the graph resides in memory, the dense embeddings are quantised from 32-bit floating point to 8-bit integers to fit within the available memory (see Table~\ref{tab:bienc-deploy} for the resulting footprint).
 
 \subsubsection{Structured Graph Retrieval}
 \label{subsubsec:structured-retrieval}
