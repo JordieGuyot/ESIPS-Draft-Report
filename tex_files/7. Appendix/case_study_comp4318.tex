@@ -1,0 +1,184 @@
+%=============================================================================
+% CASE STUDY 2 - COMP4318 (Machine Learning and Data Mining)
+%-----------------------------------------------------------------------------
+% Wired into the appendix block in main.tex directly after the COMP3308 case
+% study, so it letters itself as Appendix F automatically.
+%
+% \ref keys below are wired to the real labels in the report. Keys marked
+% [shared] resolve to the same label used by case_study_comp3308.tex:
+%   subsec:system-architecture   [shared]  Sec III-B  System Architecture
+%   sec:lr-dense                 [shared]  Sec II-B1  Dense retrieval
+%   sec:lr-graph                 [shared]  Sec II-B2  Graph-augmented retrieval
+%   subsec:rq1 / subsec:rq2      [shared]  Sec V-A / V-B  RQ1 / RQ2 analysis
+%   sec:data-results             [shared]  Sec IV     Data and Results
+%   sec:analysis-discussion      [shared]  Sec V      Analysis and Discussion
+%   app:prompts                  [shared]  App C      Prompts and Tool Schemas
+%   tab:ir-stratum               [shared]  Table X    tab:ir-reasoning  Table VIII
+%   tab:kw-stability             [shared]  Table VII  tab:ir-stability  Table XI
+%   subsec:traditional-search    Sec II-C2  Traditional scholarly search engines
+%   subsubsec:ingestion-storage  Sec III-C2 Ingestion and Storage
+%   subsec:evaluation-validation Sec III-D  Evaluation and Validation Design
+%   subsubsec:keyword-generation Sec III-D1 Keyword Generation (validation)
+%   subsubsec:embedding-quantisation Sec III-D5 Embedding Quantisation (validation)
+%   sec:results-keywords         Sec IV-A   Keyword Generation (results; label added there)
+%   tab:bienc-deploy             Table XII  tab:ir-accuracy  Table XIV
+%=============================================================================
+
+\section{Case Study 2: COMP4318 (Machine Learning and Data Mining)}
+\label{app:comp4318}
+
+This case study evidences the learning outcomes of COMP4318, Machine
+Learning and Data Mining, against the work documented in this report. In
+the format agreed with the academic supervisor, an outcome the placement
+exercised is evidenced by cross-reference to the body of the report, and
+new material is written in place only where the placement did not itself
+exercise the outcome, which here applies to the reinforcement-learning
+component of LO1 alone. The mapping follows the scoping recorded in the
+progress report.
+
+\subsection{LO1: Classification, regression, clustering and reinforcement learning}
+\textit{Understand the basic principles, strengths, weaknesses and
+applicability of machine learning algorithms for solving classification,
+regression, clustering and reinforcement learning tasks.}
+
+This outcome asks for understanding and analysis rather than
+implementation, which LO2 covers, so the evidence is drawn both from the
+system's own learned components and from the report's critical treatment
+of machine learning deployed by others. For classification,
+Section~\ref{subsec:traditional-search} analyses scite's citation-intent classifier,
+a fine-tuned SciBERT model labelling citation statements as supporting,
+contrasting or mentioning, against the third-party audit that measured
+F-scores between 0 and 0.58 where the vendor claimed over 80 percent
+precision, a concrete lesson in the gap between reported and audited
+classifier performance. The system contains a classification decision of
+its own, since IR extraction assigns each extracted span one of four
+entity types and must separate searchable entities from filters. The
+error analysis of Section~\ref{subsec:rq1} traces the deployed model's
+largest failure mode, the \texttt{filter\_distractor} stratum of
+Table~\ref{tab:ir-stratum}, to precisely that boundary, a year or citation
+bound miscategorised as a searchable entity.
+
+For regression, the cascade's ranking stages are pointwise learned
+scorers. The cross-encoder regresses a single continuous relevance score
+for each query--document pair, which alone determines the final ordering
+(Section~\ref{subsec:system-architecture}), and the bi-encoder scores candidates by
+cosine similarity between learned representations. This is where the
+progress report's planned regression-based relevance scoring across graph
+and embedding signals landed, with the hybrid resolving into a cascade in
+which each learned scorer ranks within the pool the previous stage passes
+forward. The strengths-and-weaknesses analysis of the two scorer designs
+runs through Sections~\ref{sec:lr-dense} and~\ref{subsec:rq2}, where
+independent encoding permits precomputation over 85 million works but
+cannot model query--document interaction, while joint scoring recovers
+that interaction at a per-pair cost that confines it to the final 100
+candidates. The dense stage is also an exact nearest-neighbour search in
+a learned space, and it exhibits the classic instance-based trade of no
+per-query training against a memory footprint that scales with corpus
+size and embedding dimension, the pressure that motivates the int8
+storage quantisation (Section~\ref{subsubsec:ingestion-storage},
+Table~\ref{tab:bienc-deploy}).
+
+For clustering, the applicability analysis runs in the negative
+direction. Section~\ref{sec:lr-graph} examines GraphRAG, which clusters
+an LLM-extracted graph with Leiden community detection and answers
+sensemaking questions from community summaries, and judges the approach
+out of scope because the target here is first-stage retrieval returning
+ranked paper lists rather than synthesised answers, a judgement about
+what clustering-based aggregation is and is not the right tool for.
+Clustering also appears inside a benchmarked baseline, MultipartiteRank,
+which groups candidate keyphrases into topics before ranking them, and
+its behaviour against the non-clustering extractors is measured across
+all three keyphrase datasets.
+
+The placement presented no reinforcement-learning task, and none is
+claimed. Its learning problems, offline keyphrase extraction over a fixed
+corpus and single-shot scoring of a query against candidates, contain no
+sequential decision process, no environment transitioning under the
+system's actions, and no reward signal to optimise against, so an RL
+formulation was not warranted. Recognising when the paradigm does not
+apply is itself the applicability judgement this outcome names. The
+closest empirical contact is indirect. The hosted extraction models
+belong to families whose providers attribute their reasoning behaviour to
+reinforcement-learning-based post-training, and the reasoning ablation of
+Table~\ref{tab:ir-reasoning} measures what that capability contributes at
+inference on this task, nothing for the deployed model at +0.008 and a
+decisive +0.190 for GPT-5-mini. The attribution to the training method is
+the vendor's, since the pipelines are proprietary.
+
+\subsection{LO2: Designing, implementing and evaluating machine learning algorithms}
+\textit{Have obtained practical experience in designing, implementing and
+evaluating machine learning algorithms.}
+
+The implementation experience spans the ML-facing parts of both
+pipelines, built from scratch for this project. On the ingestion side sit
+the keyword-generation and embedding-generation modules, scaled from the
+one-million-node test ingest recorded in the progress report to the full
+85-million-work subset (Section~\ref{subsubsec:ingestion-storage}), and on
+the evaluation side sit the benchmark harnesses for keyword extraction
+and IR extraction, including the hand-built 116-query stratified gold
+set. The one disclosed exception is the SciRepEval evaluation harness,
+which was adapted from its official release and extended so that the
+non-SPECTER candidates, hosted and self-hosted alike, could be wired into
+the same protocol. The evaluation experience is ML-specific in its
+choices. Metrics are matched to task, nDCG for ranking and F1@5 with
+stemming for keyphrases, with the present/absent split designed to
+separate faithful extraction from generation
+(Section~\ref{subsubsec:keyword-generation}). Candidates exceeding the
+8\,GB evaluation GPU run under post-training weight-only quantisation
+with the precision annotated per model
+(Section~\ref{subsec:evaluation-validation}), an ablation isolates the
+accuracy cost of int8 storage quantisation
+(Section~\ref{subsubsec:embedding-quantisation}), and run-to-run
+stability is quantified for the stochastic components
+(Tables~\ref{tab:kw-stability} and~\ref{tab:ir-stability}). The
+evaluations also changed the system rather than merely describing it. The
+keyword extractor deployed at the progress report, GPT-5.1 mini, was
+superseded by GPT-5.4-nano when the benchmarking of
+Section~\ref{sec:results-keywords} selected it, the
+substitution-without-redesign the architecture was built to permit.
+
+\subsection{LO3: Machine learning software and libraries}
+\textit{Have gained practical experience in using machine learning
+software and libraries.}
+
+The progress report recorded that the broader framework use envisioned in
+the proposal was not required under the revised scope, and that scoping
+holds. The placement's library experience lies not in training models but
+in selecting, quantising, serving and evaluating them, which is the form
+the skill takes in deployed machine-learning work. The stack in use spans
+four serving regimes driven through one evaluation protocol. Self-hosted
+embedders and rerankers run on PyTorch through the HuggingFace
+Transformers and Sentence-Transformers libraries, with weight-only
+quantisation applied to the candidates exceeding the evaluation GPU
+(Section~\ref{subsec:evaluation-validation}). The local IR-extraction
+candidates are served through Ollama at 4-bit quantisation
+(Table~\ref{tab:ir-accuracy}). The hosted models are driven through the
+Azure OpenAI and Cohere SDKs, including forced tool calls against a typed
+schema (Appendix~\ref{app:prompts}), and the keyphrase baselines run
+through their library implementations, KeyBERT, YAKE and the pke toolkit.
+% VERIFY: confirm pke is the implementation used for TextRank,
+% MultipartiteRank and TF-IDF; adjust the library names to the actual
+% imports before submission.
+Inside the database, Memgraph's MAGE library supplies the
+cosine-similarity computation over the stored int8 vectors
+(Section~\ref{subsec:system-architecture}), and the bootstrap confidence intervals
+reported throughout Section~\ref{sec:data-results} are computed with NumPy.
+% VERIFY: confirm NumPy (vs SciPy or pandas) for the bootstrap
+% implementation.
+
+\subsection{LO4: Presenting and interpreting data in verbal and written form}
+\textit{Present and interpret data and information in verbal and written
+form.}
+
+The written evidence comprises the progress report and this report, in
+which Sections~\ref{sec:data-results} and~\ref{sec:analysis-discussion} present the
+benchmark data and interpret it under a stated statistical discipline, in
+which per-task decompositions locate where each model does its work,
+small-stratum results are read by failure counts rather than rates, and
+cross-model gaps that fall inside confidence intervals are treated as
+ties rather than rankings. The verbal evidence has accumulated through
+the placement, with benchmark results and design decisions presented at
+the industry partner's weekly stand-ups and in regular meetings with the
+academic supervisor, and concludes with the ESIPS oral presentation to
+the academic supervisor and the industry partner, scheduled for
+14 August 2026.

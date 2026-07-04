@@ -40,22 +40,21 @@ assistants that consume both (Section~\ref{subsec:llm-agentic}).
 OpenAlex is the canonical ingestion target for any new scholarly KG, but its
 non-RDF design forces stack-level choices that shape everything downstream.
 Microsoft Academic Graph's retirement at the end of 2021 left
-OpenAlex~\cite{priem2022openalex} as the de facto open successor at scale,
-linking 209\,M works to 213\,M disambiguated authors via 65k Wikidata-backed
-concepts. There is no SPARQL endpoint, no reuse of SPAR ontologies, and the
-JSON/REST API is the canonical interface. SemOpenAlex~\cite{farber2023semopenalex}
-exists precisely to close that gap, re-lifting OpenAlex monthly into a
-26-billion-triple RDF graph with 13 entity types, 87 relations, and released
-embeddings on Zenodo. The MAKG lineage~\cite{farber2019makg,farber2022makgenhanced}
-supplies the historical RDF anchor that SemOpenAlex inherits. A second cluster of property-graph systems comprises
-S2AG~\cite{kinney2023semanticscholar} (which extends Ammar et al.'s literature
-graph~\cite{ammar2018construction}), OAG~\cite{zhang2019oag,zhang2024oagbench},
-and AceKG~\cite{wang2018acekg}. Two further systems take different design
-priorities. ORKG~\cite{jaradeh2019orkg} provides curated semantic depth, and
+OpenAlex~\cite{priem2022openalex} as the de facto open successor at scale, and
+its canonical interface is a JSON REST API with no SPARQL endpoint and no
+reuse of the SPAR ontologies.  The remaining systems matter to this thesis as
+design precedents rather than candidates.
+SemOpenAlex~\cite{farber2023semopenalex} re-lifts OpenAlex into RDF to close
+exactly that gap, inheriting its anchor from the MAKG
+lineage~\cite{farber2019makg,farber2022makgenhanced}.  A property-graph
+cluster comprises S2AG~\cite{kinney2023semanticscholar} (which extends Ammar
+et al.'s literature graph~\cite{ammar2018construction}),
+OAG~\cite{zhang2019oag,zhang2024oagbench}, and AceKG~\cite{wang2018acekg}.
+ORKG~\cite{jaradeh2019orkg} offers curated semantic depth, and
 OpenCitations~\cite{peroni2020opencitations,heibi2019coci,massari2024ocmeta,heibi2024ocindex}
-models citations as first-class resources.
-Table~\ref{tab:kg-infra} compares the eight systems on coverage, schema, query
-interface, embeddings, and licence.
+models citations as first-class resources.  Table~\ref{tab:kg-infra} carries
+the per-system detail on coverage, schema, query interface, embeddings, and
+licence.
 
 None of these systems defines a retrieval task, which is why this thesis
 treats them as substrate rather than baseline.
@@ -87,17 +86,19 @@ bulk OA full-text aggregation and underpins LLM pipelines such as
 OpenScholar~\cite{asai2024openscholar}. None of these engines exposes the
 citation graph as a queryable structure.
 
-Embedding-based retrieval is most developed in Semantic Scholar, which layers
+The closest deployed approaches to a text-plus-citation hybrid are an
+embedding layer and a citation-intent classifier, and neither amounts to the
+queryable structure this thesis requires.  Semantic Scholar layers
 SPECTER~\cite{cohan2020specter} and SPECTER2~\cite{singh2023scirepeval}
 citation-informed transformer embeddings over its literature
 graph~\cite{ammar2018construction,kinney2023semanticscholar}, with
 SciNCL~\cite{ostendorff2022scincl} a stronger contrastive successor on
-SciDocs. Scite~\cite{nicholson2021scite} sits closest to a text-plus-citation
-hybrid, classifying citation statements as supporting, contrasting or
-mentioning via a SciBERT classifier. A third-party
-audit~\cite{bakker2023evaluating} reports F-measures between 0 and 0.58
-against the vendor's claimed 80\%+ precision. The gap illustrates the broader
-reliability problem with vendor-reported numbers in this cluster.
+SciDocs, so the citation graph supervises training rather than answering
+queries.  Scite~\cite{nicholson2021scite} classifies citation statements as
+supporting, contrasting or mentioning via a SciBERT classifier, and a
+third-party audit~\cite{bakker2023evaluating} reports F-measures between 0
+and 0.58 against the vendor's claimed 80\%+ precision, which illustrates the
+broader reliability problem with vendor-reported numbers in this cluster.
 
 Graph-native discovery tools treat seed-paper exploration as a UI problem
 rather than a retrieval task. Connected

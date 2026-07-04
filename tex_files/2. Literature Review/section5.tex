@@ -28,18 +28,22 @@ contribution lies in their unaddressed intersection.  Methodologically,
 BM25 is lexically brittle, dense retrievers miss roughly a quarter of
 relevant scientific results (Section~\ref{sec:lr-dense}), citation-graph
 methods are conceptually well-matched but unbenchmarked on
-natural-language scholarly queries (Section~\ref{sec:lr-graph}), and
+natural-language scholarly queries (Section~\ref{sec:lr-graph}),
 structured-query translation has been evaluated only on
-template-generated scholarly graphs (Section~\ref{sec:lr-nl2q}).  At the
+template-generated scholarly graphs (Section~\ref{sec:lr-nl2q}), and
+keyphrase extraction is scored by agreement with author gold sets rather
+than by the retrieval an index built from it supports
+(Section~\ref{sec:lr-keyphrase}).  At the
 system level, deployed engines split cleanly into text-centric tools
 that treat the citation graph as a ranking signal at most and
 graph-native discovery tools that abandon natural-language entry
-entirely; the LLM-augmented systems consume both as black boxes
-(Sections~\ref{subsec:traditional-search}--\ref{subsec:llm-agentic}).
+entirely.  The LLM-augmented systems consume both as black boxes
+(Sections~\ref{subsec:traditional-search}
+and~\ref{subsec:llm-agentic}).
 At the benchmark level, no test set jointly exercises natural-language
 scientific queries, structured-query translation, and graph traversal
 over a live scholarly substrate.  These three gaps converge on a single
-absence: no current system, on any current benchmark, with any
+absence.  No current system, on any current benchmark, with any
 documented method combination, performs the joint task that a KG-native
 hybrid scholarly retrieval pipeline would. \\
 
@@ -48,8 +52,10 @@ hybrid scholarly retrieval pipeline would. \\
 This thesis addresses that absence with a system that uses an LLM to
 translate natural-language questions into a structured intermediate
 representation, compiles that representation deterministically into
-optimised Cypher over an OpenAlex-derived schema, and combines BM25,
-dense and graph-traversal evidence under a single ranking regime.  
+optimised Cypher over an OpenAlex-derived schema, and arranges BM25,
+dense, and graph-traversal evidence as successive stages of a single
+retrieval cascade, in which the structured stage gates the candidate set
+and the dense and cross-encoder stages rank and re-rank it.  
 Architecturally, this treats the knowledge graph as the
 primary semantic interface rather than an auxiliary feature store, with
 BM25 and dense retrieval acting as complementary lexical and semantic

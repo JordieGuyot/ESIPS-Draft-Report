@@ -1,303 +1,316 @@
 % =====================================================================
-% Deep literature review: knowledge-graph-enhanced and hybrid scholarly
-% search.  Assumes standard packages (hyperref, natbib or biblatex)
-% and a bibliography file containing the keys used below.
+% Literature review, Section II-B: recent research advances.
+% Structure: every paragraph opens with the point it exists to make,
+% evidence and grouped citations follow, and the paragraph closes by
+% tying the point to this thesis's design.
 % =====================================================================
 
 \subsection{Recent research advances}
 \label{sec:recent-advances}
 
-This thesis takes a different stance toward each of the four threads
-examined below.  Dense retrieval (Section~\ref{sec:lr-dense}) is retained
-as one signal in a hybrid pipeline, since the strongest current models
-still miss roughly a quarter of relevant papers on realistic scientific
-queries.  Graph-augmented methods (Section~\ref{sec:lr-graph}) supply the
-conceptual motivation for ingesting OpenAlex into a typed knowledge
-graph but offer no benchmarked baseline to copy.  Structured-query
-translation (Section~\ref{sec:lr-nl2q}) is the design this thesis
-pursues, instantiated through an intermediate JSON representation that
-decouples LLM-based intent extraction from deterministic query
-compilation.  Reformulation (Section~\ref{sec:lr-rag}) is set aside, both
-because it degrades strong retrievers and because it cannot express the
-structural queries a typed graph makes available.
+Five threads of recent work bear on the design, and this thesis takes a
+different stance toward each: dense retrieval and the cross-encoder
+re-ranking reviewed alongside it are adopted as the cascade's two
+ranking stages (Section~\ref{sec:lr-dense}); graph augmentation is
+treated as motivation for the typed graph rather than as a baseline to
+copy (Section~\ref{sec:lr-graph}); structured-query translation is the
+design pursued for the first stage (Section~\ref{sec:lr-nl2q}); query
+reformulation is set aside (Section~\ref{sec:lr-rag}); and keyphrase
+extraction supplies the corpus-side index that the structured stage
+matches against (Section~\ref{sec:lr-keyphrase}).  The grounds for each
+stance open the corresponding subsection.
 
-\subsubsection{Scholarly embeddings and dense retrieval for scientific text}
+\subsubsection{Scholarly embeddings, dense retrieval, and re-ranking for scientific text}
 \label{sec:lr-dense}
 
-Dense retrieval is retained as one signal in this thesis's hybrid
-pipeline rather than its primary mechanism, because the strongest current
-models still miss roughly a quarter of relevant papers on realistic
-scientific queries.  Three lines of progress have improved dense
-retrieval without closing this gap.  Wider training distributions, from
-DPR \cite{karpukhin2020dpr} through unsupervised contrastive
-pre-training \cite{izacard2022contriever} and weakly-supervised pairs at
-$10^8$--$10^9$ scale \cite{wang2022e5,li2023gte,xiao2023cpack,chen2024bgem3},
-have lifted average nDCG@10 on BEIR \cite{thakur2021beir} but left a
-structural weakness on entity-heavy and lexical queries.  Late
-interaction \cite{khattab2020colbert,santhanam2022colbertv2} and learned
-sparse retrieval \cite{formal2021splade,formal2022splade} preserved
-fine-grained query-document interaction at modest cost, with ColBERTv2
-reaching a BEIR nDCG@10 average of 49.9 across thirteen datasets while
-shrinking the index by a factor of 6--10 \cite{santhanam2022colbertv2}.
-Scholarly-domain encoders pursued the orthogonal axis of citation
-supervision \cite{beltagy2019scibert,cohan2020specter,ostendorff2022scincl},
-but Singh et al.'s 24-task SciRepEval benchmark
+Dense retrieval and cross-encoder re-ranking are retained as this
+thesis's two ranking stages rather than as its retrieval mechanism.
+The strongest single-pass models still miss roughly a quarter of
+relevant papers on realistic scientific queries, which rules dense
+retrieval out as the primary stage, while the accuracy that joint
+scoring recovers earns the cross-encoder the final one.
+
+Three lines of progress have improved dense retrieval without removing
+the failure that matters most here, which is unreliable behaviour on
+the entity-heavy and lexically precise queries that a structured stage
+answers by construction.  Scaling the training distribution, from DPR
+\cite{karpukhin2020dpr} through unsupervised contrastive pre-training
+\cite{izacard2022contriever} to weakly supervised pairs at web scale
+\cite{wang2022e5,li2023gte,xiao2023cpack,chen2024bgem3}, lifted average
+quality on the BEIR suite \cite{thakur2021beir} while leaving exactly
+that weakness in place.  Late interaction
+\cite{khattab2020colbert,santhanam2022colbertv2} and learned sparse
+retrieval \cite{formal2021splade,formal2022splade} showed instead that
+preserving finer-grained interaction between query and document terms
+buys accuracy at modest cost, and ColBERTv2 does so while shrinking a
+late-interaction index by a factor of 6 to 10
+\cite{santhanam2022colbertv2}.  The cross-encoder stage below pushes
+the same trade to its limit.  The scholarly-specific line pursued
+citation supervision
+\cite{beltagy2019scibert,cohan2020specter,ostendorff2022scincl}, and
+its lesson for this thesis is negative.  The SciRepEval benchmark
 \cite{singh2023scirepeval} shows that proximity-trained representations
-do not transfer to classification or ad-hoc search.  Their adapter-based
-SPECTER2 reaches MAP 38.4 and Recall@5 33.0 on MDCR against BM25's 33.7
-and 28.5, suggesting single-vector citation-trained encoders are not
-sufficient for heterogeneous scholarly tasks.
+transfer poorly to classification and ad-hoc search, with the
+adapter-based SPECTER2 only a few MAP points ahead of a BM25 baseline
+on multi-domain citation recommendation.  Model selection for the dense
+stage therefore cannot assume that scholarly fine-tuning wins, which is
+why the research design benchmarks general-purpose and domain-tuned
+encoders side by side.
 
-The strongest empirical evidence that dense retrieval remains unsolved
-on scientific text is LitSearch \cite{ajith2024litsearch}.  Ajith et al.\
-assembled 597 realistic literature-search questions paired against a
-corpus of 64,183 papers, half rewritten from inline citations and half
-written by the papers' own authors.  None of the systems perform well.
-The best open model tested, GritLM-7B, reaches Recall@5 of 74.8 on
-specific questions but falls to 67.7 on the inline-citation subset, which
-deliberately filters for low title-abstract lexical overlap, and to
-Recall@20 of 70.8 on broad questions.  Commercial tools score 17.5
-Recall@5 on author-written specific questions, roughly 65 points below
-GritLM-7B.  The cross-benchmark contrast makes the diagnosis concrete:
-GritLM-7B scores 70.3 nDCG@10 on Natural Questions but only 44.1 on broad
-LitSearch, a 26-point drop that cannot be explained by random noise.
-LitSearch also surfaces three failure modes that single-vector dense
-retrieval cannot easily address.  Inline-citation queries are
-systematically harder than author-written ones because authors reuse
-their own title and abstract vocabulary, and retrievers exploit this
-lexical shortcut.  Broad questions remain harder than specific ones.
-Feeding full text rather than title and abstract to GritLM hurts
-retrieval on author-written specific queries (Recall@5 drops from 82.5 to
-73.0), which Ajith et al.\ attribute to a distributional mismatch between
-training (MS~MARCO passages around 60 tokens) and full scientific texts.
-Related work reinforces the picture.  DORIS-MAE \cite{wang2023dorismae}
-reports that general-purpose models modestly outperform most
-scholarly-specific ones on multi-aspect CS queries, and CSFCube
-\cite{mysore2021csfcube} shows that SPECTER's performance varies
-substantially across facets.  Notably, LitSearch does not benchmark
-SPECTER2 or SciNCL in its main tables.  Combined with the DORIS-MAE
-findings, this strongly suggests that citation-triplet-trained encoders
-have not been shown to outperform strong general-purpose retrievers on
-realistic natural-language literature search.  They remain the models of
-choice for paper-paper similarity, but that is a different task.
+Cross-encoder re-ranking recovers the accuracy that separately computed
+representations give up, and this thesis retains it as the final stage
+of the cascade.  Nogueira and Cho's BERT passage re-ranker, later
+termed monoBERT \cite{nogueira2019monobert}, established the design by
+reading the query and the document together in one input, so that every
+query term attends to every document term, and monoT5 extended the same
+idea to sequence-to-sequence scoring \cite{nogueira2020monot5}.  Joint
+reading is what late interaction only approximates and what
+single-vector encoders cannot express at all, and it carries a defined
+price.  Every query and document pair requires a fresh forward pass, so
+nothing can be precomputed and the model is affordable only over a
+small candidate set.  Pairing a cheap high-recall first stage with an
+expensive cross-encoder over its top candidates is the established
+multi-stage ranking pattern \cite{nogueira2019multistage}, and the two
+semantic stages of this thesis instantiate it, with a bi-encoder
+ranking the structured candidate pool and a cross-encoder re-ranking
+the shortlist it returns.  The research design selects both models by
+benchmark rather than by reputation.
 
-These structural failures, on broad questions, multi-hop intent, and
-typed-relation queries that single-vector representations cannot express,
-are precisely what motivates adding graph traversal alongside text and
-embedding lookup.
+The size of the gap that remains is established by LitSearch
+\cite{ajith2024litsearch}, a benchmark of 597 literature-search
+questions either written by the papers' own authors or rewritten from
+inline citations, and it is the source of the quarter-missed figure
+this subsection's stance rests on.  The best open model tested,
+GritLM-7B, reaches Recall@5 of 74.8 on specific questions, so roughly
+one relevant paper in four is absent from its top results, and deployed
+commercial tools reach only 17.5 on the same author-written questions.
+The difficulty is scholarly search itself rather than retrieval at
+large, since the same model's nDCG@10, which scores how highly the
+relevant papers sit within the top ten results, falls from 70.3 on
+general-domain Natural Questions to 44.1 on broad LitSearch queries.
+Two of the benchmark's failure modes matter directly here.  Queries
+whose wording shares little with the target paper's title and abstract
+are systematically harder, because retrievers exploit lexical overlap,
+and broad questions are harder than specific ones.  Both are weaknesses
+of matching in a single learned space, and neither touches the further
+class of query, over typed relations and multiple citation hops, that
+no single-vector representation can express at all.  Related benchmarks
+reinforce the reading that scholarly-specific embeddings are not the
+remedy, with DORIS-MAE \cite{wang2023dorismae} finding general-purpose
+models modestly ahead on multi-aspect queries and CSFCube
+\cite{mysore2021csfcube} finding SPECTER unstable across facets.  These
+failures are what the structured graph stage of this thesis exists to
+remove, and they are the case for adding graph traversal alongside text
+and embedding lookup.
 
 \subsubsection{Graph-augmented retrieval}
 \label{sec:lr-graph}
 
 Graph-augmented methods supply the conceptual motivation for ingesting
 OpenAlex into a typed knowledge graph but offer no benchmarked baseline
-to copy on realistic scientific queries.  This thesis therefore treats
-the literature as identifying the gap rather than filling it.  Scholarly
-corpora are already graphs.  Papers cite papers, authors co-author,
-venues publish, funders grant.  Three sub-threads have been proposed to
-exploit this structure, namely knowledge-graph embeddings, graph neural
-networks, and Personalized PageRank, but each has been evaluated almost
-exclusively off scholarly search.
+to copy on realistic scientific queries, so this thesis treats the
+literature as identifying the gap rather than filling it.  Scholarly
+corpora are already graphs, in that papers cite papers, authors
+co-author, venues publish, and funders grant, and three sub-threads
+have been proposed to exploit that structure, namely knowledge-graph
+embeddings, graph neural networks, and Personalized PageRank.  Each has
+been evaluated almost entirely off scholarly search.
 
-The canonical knowledge-graph embedding family treats link prediction as
-a geometric problem.  TransE \cite{bordes2013transe}, ComplEx
-\cite{trouillon2016complex}, and RotatE \cite{sun2019rotate} have been
-evaluated almost exclusively on FB15k and WN18 and their harder variants,
-benchmarks structurally unlike scholarly graphs in scale, edge
-directionality, and node heterogeneity.  F\"arber and Ao
-\cite{farber2022makgenhanced} apply vanilla KGEs at scholarly scale,
-reporting ComplEx MRR 0.958 on paper, journal, and conference link
-prediction over MAKG.  The literature does not, however, evaluate whether
-such embeddings support natural-language literature search.
-Link-prediction accuracy on the graph itself is not evidence of utility
-for retrieval.
+Knowledge-graph embeddings offer no evidence of retrieval utility,
+because the family is validated on link prediction rather than search.
+The canonical models TransE, ComplEx, and RotatE
+\cite{bordes2013transe,trouillon2016complex,sun2019rotate} are
+benchmarked almost exclusively on FB15k and WN18 variants, graphs
+unlike scholarly ones in scale, edge directionality, and node
+heterogeneity.  The one application at scholarly scale makes the gap
+explicit, in that F\"arber and Ao \cite{farber2022makgenhanced} report
+near-perfect link prediction over MAKG (ComplEx MRR 0.958) yet evaluate
+no literature-search task at all.  Accuracy at predicting missing edges
+is not evidence that the embeddings can rank papers against a
+natural-language query.
 
-Graph neural networks face a similar mismatch.  GraphSAGE
-\cite{hamilton2017graphsage} and GAT \cite{velickovic2018gat} are
-evaluated on node classification over citation networks (Cora, Citeseer,
-Pubmed) that are tiny next to OpenAlex, and the task is not retrieval.
-LightGCN \cite{he2020lightgcn} simplified GCN-based collaborative
-filtering on user-item bipartite graphs, but citation networks have no
-recurring user, edges are directional and time-stamped, and the long
-tail of once-cited papers is extreme.  The symmetric normalisation
-assumptions LightGCN makes are not obviously valid in this setting.
-Scholarly-specific neural work has largely bypassed these
-bipartite-GNN assumptions \cite{bhagavatula2018citeomatic,shen2024tgntrec},
-but none of it has produced a benchmark comparable in realism to
-LitSearch.
+Graph neural networks fail the same relevance test for a different
+reason, in that their evaluation regimes assume graphs and tasks that
+scholarly search does not have.  GraphSAGE \cite{hamilton2017graphsage}
+and GAT \cite{velickovic2018gat} are validated on node classification
+over citation networks orders of magnitude smaller than OpenAlex, and
+LightGCN \cite{he2020lightgcn} assumes the recurring users and
+symmetric interactions of recommendation, neither of which a
+directional, time-stamped citation graph with an extreme long tail
+provides.  Scholarly-specific neural work has moved past those
+assumptions \cite{bhagavatula2018citeomatic,shen2024tgntrec} but has
+produced no benchmark comparable in realism to LitSearch, so it
+constrains nothing in this design.
 
-Personalized PageRank has the strongest conceptual fit.  Haveliwala's
-topic-sensitive formulation \cite{haveliwala2002tspr} encodes query
-intent directly into the teleport vector, so the resulting scores reflect
-relevance conditional on the query rather than the generic prominence of
-raw citation counts, and the iterative propagation aggregates influence
-across multiple citation hops.  Chen et al.\ \cite{chen2007gems} exploit
-this to surface historically pivotal but under-cited papers in physics.
-Together these properties address failure modes that plague both raw
-citation ranking (no query conditioning) and dense retrieval (no
-multi-hop aggregation over typed relations), making PPR an obvious
-candidate for hybridisation with modern retrievers.  Despite this fit,
-the 2020--2026 scholarly-search literature does not contain a rigorous
-combination of Personalized PageRank with modern dense or KG embeddings
+Personalized PageRank is the one graph method whose mechanics match the
+retrieval problem, and even it lacks a scholarly-search evaluation.
+Haveliwala's topic-sensitive formulation \cite{haveliwala2002tspr}
+conditions the walk on the query through the teleport vector, so scores
+reflect query-specific relevance rather than generic prominence, and
+the propagation aggregates influence across citation hops that no
+single-vector representation reaches.  Chen et al.\ \cite{chen2007gems}
+use exactly this to surface pivotal but under-cited physics papers.
+The scholarly-search literature between 2020 and 2026 nevertheless
+contains no rigorous combination of PPR with modern dense retrieval
 evaluated on scientific IR.  The closest analogue, HippoRAG
-\cite{jimenezgutierrez2024hipporag}, builds a schemaless KG via LLM
-OpenIE and seeds PPR from query entities, reporting Recall@5 of 51.9 on
-MuSiQue and 89.1 on 2WikiMultiHopQA, but the corpora are Wikipedia-based,
-not scientific.
+\cite{jimenezgutierrez2024hipporag}, seeds PPR from query entities over
+an LLM-extracted graph but evaluates on Wikipedia-derived multi-hop
+question answering rather than scientific corpora.
 
-Modern graph-RAG variants extend the framing further but evaluate
-off-domain.  Microsoft's GraphRAG \cite{edge2024graphrag} clusters an
-LLM-extracted graph with Leiden community detection and answers
-sensemaking questions by aggregating community summaries, evaluated on
-podcast transcripts and news articles.  LightRAG \cite{guo2024lightrag}
-evaluates on synthetic sensemaking questions over textbook corpora.  For
-scholarly search specifically, the strongest modern scholarly-RAG
+The modern graph-RAG variants confirm the pattern rather than closing
+the gap.  GraphRAG \cite{edge2024graphrag} and LightRAG
+\cite{guo2024lightrag} evaluate community-summary question answering
+over podcasts, news, and textbooks, and the strongest scholarly RAG
 system, OpenScholar \cite{asai2024openscholar}, abandons the citation
-graph entirely and combines a text retriever with iterative
-self-feedback.  The pattern is consistent.  Sophisticated graph methods
-such as Personalized PageRank, GNNs, and community detection are widely
-posited as useful for scholarly search but rarely benchmarked against
-modern dense baselines on realistic scientific queries.
+graph entirely in favour of a text retriever with iterative
+self-feedback.  Graph structure is widely asserted to help scholarly
+search and almost never benchmarked for it against modern dense
+baselines.
 
-This thesis takes the conjunction of strong conceptual fit and thin
-empirical record on scientific NL queries as motivation rather than as a
-baseline to copy.  It ingests OpenAlex into a typed knowledge graph and
-exposes graph structure through traversal queries directly, treating the
-KGE, GNN and PPR literature as the work that identifies the gap rather
-than the work that fills it.  The end-to-end generative component of
-GraphRAG and its successors is out of scope for this thesis, since the
-target is first-stage retrieval returning ranked paper lists rather than
-synthesised long-form answers.  How users interact with that
-graph-structured retrieval, in particular how natural-language questions
-become structured queries against an OpenAlex-derived schema, is the
-question Section~\ref{sec:lr-nl2q} takes up.
+This thesis takes that conjunction of strong conceptual fit and thin
+empirical record as motivation rather than as a baseline to copy.  It
+ingests OpenAlex into a typed knowledge graph and exposes the structure
+through traversal queries directly, treating the KGE, GNN, and PPR
+literature as work that identifies the gap rather than work that fills
+it.  The generative components of GraphRAG and its successors are out
+of scope, since the target here is first-stage retrieval returning
+ranked paper lists rather than synthesised answers.  How a
+natural-language question becomes a structured query against an
+OpenAlex-derived schema is the question Section~\ref{sec:lr-nl2q} takes
+up.
 
 \subsubsection{Natural-language-to-structured-query systems for scholarly knowledge graphs}
 \label{sec:lr-nl2q}
 
 Structured-query translation is the design this thesis pursues,
 instantiated through an intermediate JSON representation that decouples
-LLM-based intent extraction from deterministic query compilation.  This
-third position avoids the structural weaknesses of both existing
-scholarly NL-to-graph-query benchmarks and end-to-end LLM tool calling.
-The underlying technology has been maturing rapidly in the NL-to-SQL
-setting.  Spider \cite{yu2018spider} and BIRD \cite{li2023bird}
-established cross-domain benchmarks with strictly disjoint train/test
-schemas, DIN-SQL \cite{pourreza2023dinsql} narrowed the human-model gap
-through decomposition into schema linking, classification, generation
-and self-correction, and Spider 2.0 \cite{lei2024spider2} drops GPT-4o to
-roughly 10\% success on enterprise-scale schemas, showing how far
-short-context benchmarks travel when realistic schemas appear.
+LLM-based intent extraction from deterministic query compilation, and
+this third position avoids the structural weaknesses of both the
+existing scholarly benchmarks and end-to-end LLM tool calling.
 
-The scholarly-specific literature is considerably thinner.  SpCQL
-\cite{guo2022spcql} presents the first dedicated NL-to-Cypher dataset
-with 10,000 question/query/answer triples in Chinese over the OwnThink
-Neo4j graph, but the schema is not provided at inference, which leaves
-the original setup under-specified.  DBLP-QuAD \cite{banerjee2023dblpquad}
-builds 10,000 NL/SPARQL pairs over the DBLP scholarly graph using 98
-hand-written templates expanded via subgraph sampling, and SciQA
-\cite{auer2023sciqa} addresses SPARQL over the Open Research Knowledge
-Graph with 2,565 pairs combining handcrafted and template-generated
-queries.  Reported results on SciQA span from under 26\% F1 for zero-shot
-LLMs to over 97\% F1 for fine-tuned 7--8B LLMs, a gap that is evidence
-both for the importance of fine-tuning and for the risk of benchmark
-saturation via template overfitting.  All three scholarly datasets share
-structural weaknesses.  SpCQL is Chinese-only and open-domain, DBLP-QuAD
-and SciQA are template-generated and reward systems that learn template
-patterns rather than compositional semantics, and both SPARQL benchmarks
-typically assume gold entity and relation linking that reality does not
-supply.  QALD \cite{usbeck2023qald10} remains the general KGQA evaluation
-of record but does not target scholarly graphs.
+The translation technology itself is mature, and its trajectory in the
+SQL setting defines what a credible evaluation must contain.  Spider
+\cite{yu2018spider} and BIRD \cite{li2023bird} established cross-domain
+evaluation with disjoint training and test schemas, and decomposition
+methods such as DIN-SQL \cite{pourreza2023dinsql} brought models close
+to human performance on them.  Spider 2.0 \cite{lei2024spider2} then
+showed that ceiling to be an artefact of small schemas, dropping GPT-4o
+to roughly 10\% success once enterprise-scale schemas appear.  The
+lesson carried into this thesis is that translation accuracy means
+little unless a realistic schema is supplied at inference, which is how
+its own gold set is constructed.
 
-A very different line of work side-steps grammar-constrained semantic
-parsing entirely.  ReAct \cite{yao2023react} interleaves free-text
-thought traces with executable actions, and Toolformer
-\cite{schick2023toolformer} shows an LM can self-supervise when to call
-tools.  OpenAI's function-calling interface productised the pattern in
-mid-2023 and is now the default substrate for agentic LLM systems.  The
-contrast with fine-tuned parsers is structural.  Tool-using LLMs push
-structured-query construction into the prompt and the tool's schema,
-exchanging grammar-level correctness guarantees for flexibility and
-compositional reasoning.  Direct head-to-head comparisons between
-DIN-SQL-style fine-tuned parsers and ReAct-style tool-using agents on
-scholarly KGQA are still scarce, leaving an open methodological question
-particularly relevant to systems that expose OpenAlex through both a
-Cypher backend and a set of graph-traversal functions.
+The scholarly-specific benchmarks are too weak to reuse, which is why
+this thesis builds its own.  SpCQL \cite{guo2022spcql} pairs 10,000
+Chinese questions with Cypher over an open-domain graph but leaves the
+schema unspecified at inference.  DBLP-QuAD \cite{banerjee2023dblpquad}
+and SciQA \cite{auer2023sciqa} generate their pairs from hand-written
+templates, and the spread reported on SciQA in F1, the harmonic mean of
+precision and recall, runs from under 26\% for zero-shot models to over
+97\% after fine-tuning, which is as much evidence of template
+saturation as of progress.  Both SPARQL benchmarks further assume gold
+entity linking that no deployed system receives, and QALD
+\cite{usbeck2023qald10} remains general-domain.  A benchmark that
+rewards template memorisation under gold linking cannot certify the
+translator this pipeline needs.
 
-This thesis's design occupies a third position.  Rather than fine-tuning
-a grammar-constrained parser end-to-end (the SpCQL, DBLP-QuAD, and SciQA
-tradition) or letting an LLM emit Cypher directly through function
-calling (the ReAct and Toolformer tradition), it introduces an
-intermediate JSON representation that names a target entity type and a
-set of typed relations.  The LLM populates this structure from natural
-language, and a deterministic compiler translates the JSON into Cypher
-against a fixed schema derived from OpenAlex.  The split inherits
-compositional flexibility from the function-calling line, since the LLM
-does not need to know the underlying graph language, and preserves the
-correctness guarantees of the fine-tuned parser line, since query
-construction itself never leaves the compiler.  It also avoids three of
-the empirical weaknesses surfaced above.  There are no templates to
-memorise, gold entity linking is not assumed, and the schema is supplied
-at inference rather than left implicit.  Whether this design generalises
-to the kinds of structural queries reformulation cannot reach is the
-question Section~\ref{sec:lr-rag} takes up.
+Tool-calling agents sit at the opposite pole, trading grammar-level
+correctness guarantees for flexibility.  ReAct \cite{yao2023react}
+interleaves free-text reasoning with executable actions, Toolformer
+\cite{schick2023toolformer} shows a model can learn when to call tools,
+and function-calling APIs have since made the pattern the default
+substrate for agentic systems.  Query construction moves into the
+prompt and the tool schema, so nothing guarantees that the emitted
+query is valid or optimal, and direct comparisons between fine-tuned
+parsers and tool-using agents on scholarly KGQA remain scarce.
+
+This thesis's design occupies a third position between those poles.
+Rather than fine-tuning a grammar-constrained parser end-to-end (the
+SpCQL, DBLP-QuAD, and SciQA tradition) or letting an LLM emit Cypher
+directly through function calling (the ReAct and Toolformer tradition),
+it introduces an intermediate JSON representation that names typed
+entities and the boolean expression over them.  The LLM populates the
+structure from natural language, and a deterministic compiler
+translates it into Cypher against a fixed schema derived from OpenAlex.
+The split inherits compositional flexibility from the function-calling
+line, since the LLM never needs to know the graph language, and keeps
+the correctness guarantees of the parser line, since query construction
+never leaves the compiler.  It also avoids the empirical weaknesses
+above, in that there are no templates to memorise, gold entity linking
+is not assumed, and the schema is supplied at inference.  Whether this
+design generalises to the structural queries reformulation cannot reach
+is the question Section~\ref{sec:lr-rag} takes up.
 
 \subsubsection{LLM query reformulation for scholarly search}
 \label{sec:lr-rag}
 
-This thesis sets LLM query reformulation aside, both because it degrades
-the strong retrievers it would need to combine with and because it cannot
-in principle express the structural queries a typed graph makes
-available.  The relevant body of work is the cleanest basis for explaining
-why.  A range of methods leave the retriever unchanged and rewrite the
-query.  HyDE \cite{gao2023hyde} encodes an LLM-generated hypothetical
-answer document, Query2doc \cite{wang2023query2doc} concatenates the
-original query with an LLM pseudo-document, query-expansion-by-prompting
-\cite{jagerman2023qexp} adds chain-of-thought expansion terms, and
-Generative Relevance Feedback \cite{mackie2023grf} replaces classical
-pseudo-relevance feedback with LLM-generated long-form text.
+This thesis sets LLM query reformulation aside, both because it
+degrades the strong retrievers it would need to combine with and
+because it cannot in principle express the structural queries a typed
+graph makes available.  The methods leave the retriever unchanged and
+rewrite the query instead, whether by encoding a hypothetical answer
+document, appending an LLM pseudo-document, or generating expansion
+text in place of classical relevance feedback
+\cite{gao2023hyde,wang2023query2doc,jagerman2023qexp,mackie2023grf}.
 
-The critical corrective is Weller et al.\ \cite{weller2024whenfail}, who
+The decisive evidence is Weller et al.\ \cite{weller2024whenfail}, who
 ran eleven expansion methods across twelve datasets and twenty-four
-retrievers and found a strong negative correlation between retriever base
-strength and expansion gains.  Expansion helps weaker models like DPR and
-untuned Contriever but routinely hurts ColBERTv2, SPLADEv2, GTE Large and
-the E5 variants, with the proposed mechanism being that generated text
-adds noise that dilutes the original relevance signal.  Two implications
-follow.  A pipeline combining strong dense retrieval with a typed
-OpenAlex-backed graph sits precisely where Weller et al.\ document
-expansion as negligible or negative.  The structured graph is expected to
-provide the discriminative signal expansion would otherwise contribute,
-without the attendant noise.  Reformulation also cannot in principle
-express structural queries such as \emph{papers by authors at institution
-X that cite work from lab Y}, regardless of how semantically rich the
-expansion.  The structured-parsing path surveyed in
-Section~\ref{sec:lr-nl2q} is therefore the right tool for this thesis,
-and reformulation is not.
+retrievers and found expansion gains negatively correlated with
+retriever strength.  Expansion helps weak retrievers and routinely
+hurts strong ones such as ColBERTv2 and SPLADE, with the generated text
+diluting the original relevance signal.  Two implications follow for
+this design.  A pipeline built on strong dense retrieval over a typed
+OpenAlex-backed graph sits exactly where expansion is documented as
+negligible or negative, and no expansion, however semantically rich,
+can express a structural query such as \emph{papers by authors at
+institution X that cite work from lab Y}.  The structured-parsing path
+of Section~\ref{sec:lr-nl2q} is therefore the right tool for this
+thesis and reformulation is not.  The adjacent scholarly-RAG systems
+that would consume such pipelines target end-to-end answer generation
+rather than first-stage retrieval, and
+Section~\ref{subsec:llm-agentic} surveys them as users of this system's
+output rather than competitors to it.
 
-A larger generative and agentic scholarly-RAG literature (PaperQA2
-\cite{skarlinski2024paperqa2}, OpenScholar \cite{asai2024openscholar},
-Ai2 Scholar QA, and commercial tools such as Elicit and Consensus) sits
-adjacent to this thread but targets end-to-end answer generation rather
-than first-stage retrieval.  Ranked paper lists are the deliverable here,
-so natural-language question-answering is out of scope.
+\subsubsection{Keyphrase extraction for scholarly text}
+\label{sec:lr-keyphrase}
 
-% Synthesising across the four threads, a coherent picture emerges for
-% systems that combine OpenAlex-backed typed knowledge graphs with LLM-based
-% query translation, text-index retrieval, graph traversal and dense
-% embedding.  Dense retrievers are necessary but not sufficient.  The best
-% open model on LitSearch still misses a quarter of relevant papers at
-% Recall@5.  Citation-aware embeddings help paper--paper similarity more
-% than natural-language ad-hoc search, and task-format adapters are almost
-% certainly required.  Graph-augmented retrieval has strong conceptual
-% motivation but a surprisingly thin evaluation record on scientific queries
-% specifically, which is both a methodological risk and an opportunity.
-% Natural-language-to-structured-query is feasible but its scholarly
-% benchmarks are small, templated and approach saturation under fine-tuning.
-% Hybrid approaches that combine LLM-based entity extraction with
-% deterministic query compilation offer a less-studied alternative to both
-% end-to-end semantic parsing and free-form LLM function-calling.  And LLM
-% query reformulation is a powerful lever that improves weak pipelines but
-% can degrade strong ones, making the relative position on the
-% retriever-strength curve, rather than any absolute endorsement, the right
-% frame for design decisions in hybrid scholarly search systems.
+The corpus-side artefact of the structured stage is a per-work keyword
+index, so the other half of RQ1 sits in the keyphrase-extraction
+literature, which this thesis draws on for baselines and evaluation
+conventions rather than for a deployable extractor.  Meng et al.\
+\cite{meng2017deepkp} reframed the task as sequence-to-sequence
+generation and introduced the now-standard split between present
+keyphrases, which occur verbatim in the source text, and absent
+keyphrases, which must be generated.  The split matters here because an
+index built by a language model can hallucinate terms the source does
+not contain, a failure purely extractive methods cannot commit, so the
+present score isolates the faithfulness a deterministic matcher depends
+on.  Three families supply the baselines this thesis benchmarks.
+Statistical and graph-based extractors score candidate spans without
+training and can recover only present keyphrases, running from TF-IDF
+term weighting \cite{salton1988termweighting} through the
+graph-centrality methods TextRank \cite{mihalcea2004textrank} and
+MultipartiteRank \cite{boudin2018multipartiterank} to YAKE's
+corpus-independent features \cite{campos2020yake}.  Neural extractors
+such as KeyBERT \cite{grootendorst2020keybert} and the keyphrase-aware
+pre-trained KBIR \cite{kulkarni2022kbir} improve span ranking but
+remain extractive.  Generative models can also produce absent
+keyphrases, with KeyBART \cite{kulkarni2022kbir} the representative
+fine-tuned generator and a prompted general-purpose language model the
+newest member of the family.  Evaluation is by F1 at a small cutoff
+against author-assigned gold keyphrases, usually with stemming, and its
+absolute ceiling is low because author keyphrase sets are short,
+subjective, and only partly recoverable from the title and abstract
+alone, so even strong systems score in the tens, as the biomedical
+PubMedAKE benchmark shows directly \cite{sheng2022pubmedake}.  The
+datasets this thesis evaluates on follow that convention at scale, with
+OAGKX deriving some 23 million records from the Open Academic Graph
+\cite{cano2020oagkx} and KPBiomed pairing more than five million PubMed
+abstracts with their author keyphrases \cite{houbre2022kpbiomed},
+alongside PubMedAKE over the same source \cite{sheng2022pubmedake}.
+What agreement with authors does not measure is the retrieval the index
+exists to serve, and the closest result is Boudin et al.\
+\cite{boudin2020kpretrieval}, who show that appending generated
+keyphrases to documents improves scientific ad-hoc retrieval.  That gap
+between agreement and retrieval recurs later as a limitation of this
+thesis's own component evaluation.

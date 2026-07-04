@@ -1,0 +1,206 @@
+%=============================================================================
+% CASE STUDY 1 - COMP3308 (Introduction to Artificial Intelligence)
+%-----------------------------------------------------------------------------
+% Wired into the appendix block in main.tex after Appendix D, so it letters
+% itself as Appendix E automatically via the custom \appendix patch.
+%
+% \ref keys below are wired to the real labels in the report:
+%   sec:intro                       Sec I      Introduction            (unchanged)
+%   subsec:system-architecture      Sec III-B  System Architecture
+%   subsubsec:structured-retrieval  Sec III-C3 Structured Graph Retrieval
+%   subsubsec:ir-extraction         Sec III-D2 IR Extraction (validation)
+%   sec:data-results                Sec IV     Data and Results
+%   sec:results-biencoder           Sec IV-C   Dense Bi-encoder Retrieval (label added there)
+%   sec:analysis-discussion         Sec V      Analysis and Discussion
+%   subsec:rq1 / subsec:rq2         Sec V-A / V-B   RQ1 / RQ2 analysis
+%   subsec:limitations              Sec V-D    Limitations
+%   sec:lr-dense / sec:lr-graph     Sec II-B1 / II-B2  Dense / Graph-augmented retrieval
+%   sec:lr-nl2q / sec:lr-rag        Sec II-B3 / II-B4  NL-to-query / Query reformulation
+%   app:prompts                     App C      Prompts and Tool Schemas (unchanged)
+%   Tables: tab:kw-kpbiomed, tab:kw-pubmedake, tab:kw-stability,
+%           tab:ir-reasoning, tab:ir-decomp, tab:ir-stratum, tab:ir-stability,
+%           tab:xenc-results (full cross-encoder scores, in Appendix A)
+%
+% Citations resolve to existing .bib entries:
+%   \cite{robertson1994bm25}   Robertson & Walker, SIGIR '94  (BM25)
+%   \cite{haveliwala2002tspr}  Haveliwala, WWW 2002           (topic-sensitive PageRank)
+%
+% The Knuth & Moore alpha-beta ordering bound remains a commented block at the
+% end of LO2; add a bib entry if the quantitative form of that claim is wanted.
+%=============================================================================
+
+\section{Case Study 1: COMP3308 (Introduction to Artificial Intelligence)}
+\label{app:comp3308}
+
+This case study evidences the learning outcomes of COMP3308, Introduction to
+Artificial Intelligence, against the work documented in this report. In the
+format agreed with the academic supervisor, an outcome the placement
+exercised is evidenced by cross-reference to the body of the report, and new
+material is written in place only where the placement did not itself
+exercise the outcome, which is the case for LO2 alone. The mapping follows
+the scoping recorded in the progress report.
+
+\subsection{LO1: Problem formulation and search algorithms}
+\textit{Formulate problem space description, select and apply suitable
+search algorithms and analyse the issues involved.}
+
+The problem-space formulation is the substance of Section~\ref{sec:intro},
+which poses literature search as the reconciliation of two retrieval
+paradigms, and of Section~\ref{subsubsec:structured-retrieval}, which gives the structured
+stage a formal statement in which a query is a typed entity list with a
+recursive boolean expression over it and candidacy is defined by the
+satisfaction relation $w \models \varphi$. Search-algorithm selection and
+application run through the cascade of
+Section~\ref{subsec:system-architecture}, namely BM25 over per-entity-type
+text indexes for non-exact entity matching, direct property match for exact
+entities, top-100 dense retrieval by cosine similarity, and cross-encoder
+re-ranking. The issues analysed alongside include the restricted-universe
+semantics required for NOT (Section~\ref{subsubsec:structured-retrieval}),
+the recall bound the boolean gate places on first-stage retrieval
+(Section~\ref{subsec:limitations}), and the revision of the formulation
+itself, from the fuzzy-match-and-traverse design recorded in the progress
+report to the compiled subquery-per-entity design documented here.
+
+\subsection{LO2: Minimax search and alpha-beta pruning}
+\textit{Understand and apply minimax search and alpha-beta pruning in game
+playing.}
+
+The placement contained no adversarial search, so no minimax or alpha-beta
+implementation forms part of the system and none is claimed here. The
+progress report scoped the outcome accordingly, and this subsection
+addresses it at the level of the principle those algorithms share with the
+deployed architecture.
+
+That principle is staged elimination ordered by cost. Alpha-beta's
+contribution to minimax is to discard subtrees that provably cannot
+influence the root decision, so that search effort concentrates where it
+can still change the outcome, and the retrieval cascade of
+Section~\ref{subsec:system-architecture} is built on the same economy. Its first cut,
+the boolean gate, discards every work failing the query expression, and
+this pruning is exact in the same sense as an alpha-beta cutoff. With
+respect to the objective the system defines, a work failing $w \models E$
+is by construction not an answer, so no later stage could have surfaced it.
+The analogy must, however, be stated with its limits. Alpha-beta is
+lossless with respect to the minimax value, whereas the cascade's second
+cut, the truncation of the ranked pool to the top 100 candidates, is not,
+because a work ranked just outside the cut by the bi-encoder might have
+been ranked first by the cross-encoder and nothing bounds that loss. The
+truncation is therefore heuristic forward pruning, closer in character to
+beam search than to alpha-beta, and the gate's own exactness holds against
+the system's definition of candidacy rather than an external guarantee of
+relevance, the caveat Section~\ref{subsec:limitations} records.
+
+The comparison also carries over alpha-beta's best-known practical
+property. The cutoffs alpha-beta achieves are governed by move ordering, in
+that the earlier a strong move is examined, the more of the tree the same
+bounds eliminate. The cascade's analogue is the ranking fidelity of its
+cheap stage. The better the bi-encoder orders the candidate pool, the less
+relevance the fixed truncation discards, which is the property the
+bi-encoder benchmarking of Section~\ref{sec:results-biencoder} measures and
+the selection of Section~\ref{subsec:rq2} optimises for. The outcome is
+therefore evidenced through understanding, of cost-ordered elimination, of
+the distinction between sound and heuristic pruning, and of the dependence
+of pruning safety on ordering quality, rather than through a game-playing
+implementation.
+% Optional strengthening for the ordering point: under perfect move
+% ordering alpha-beta examines O(b^{d/2}) leaves against minimax's O(b^d)
+% (Knuth & Moore, "An analysis of alpha-beta pruning", Artificial
+% Intelligence 6(4), 1975). Add the bib entry if you want the quantitative
+% form of the claim.
+
+\subsection{LO3: Supervised, unsupervised, and probabilistic reasoning}
+\textit{Understand the basic principles and analyse the strengths,
+weaknesses and applicability of some of the main AI algorithms for
+supervised learning, unsupervised learning and probabilistic reasoning.}
+
+The keyword benchmark compares the supervised and unsupervised families
+directly, running supervised fine-tuned models (KeyBART, KBIR-inspec)
+against unsupervised statistical and graph-based extractors (TF-IDF,
+YAKE, TextRank, MultipartiteRank), with the deployed prompted language
+model evaluated alongside both
+(Tables~\ref{tab:kw-kpbiomed}--\ref{tab:kw-pubmedake}). The analysis in
+Section~\ref{subsec:rq1} then diagnoses the characteristic weakness of the
+supervised family when KeyBART's lead on its own training distribution,
+OAGKX, collapses off it, a case of overfitting read from cross-dataset
+behaviour. Section~\ref{subsec:rq2} extends the same analysis to retrieval,
+where the citation-supervised SPECTER2 variants top their in-domain task
+yet finish near the bottom on average, and the biomedically supervised
+MedCPT fails to lead even on biomedical text while general-purpose models
+hold up across all tasks, an applicability analysis of specialisation
+against generality.
+
+Probabilistic reasoning enters at the system's core and in its evaluation.
+The matcher of the structured stage is BM25 (Section~\ref{subsubsec:structured-retrieval}),
+grounded in the probabilistic relevance framework~\cite{robertson1994bm25}.
+Section~\ref{sec:lr-graph} analyses topic-sensitive
+PageRank~\cite{haveliwala2002tspr}, a random-walk model whose teleport
+distribution conditions relevance propagation on the query, as the
+strongest conceptual fit among graph methods. Every model selection in
+Section~\ref{sec:data-results} is then made under bootstrap uncertainty
+estimates, with overlapping intervals read as ties and the stochasticity of
+temperature-zero endpoints quantified over repeated runs
+(Tables~\ref{tab:kw-stability} and~\ref{tab:ir-stability}).
+
+\subsection{LO4: Designing, implementing and evaluating AI algorithms}
+\textit{Gain practical experience in designing, implementing and evaluating
+AI algorithms.}
+
+The design and implementation experience is concentrated in the three
+artefacts of the structured stage: firstly, the natural-language-to-IR
+extractor, with its system prompt, forced tool-call schema and validation
+step (Section~\ref{subsubsec:structured-retrieval},
+Appendix~\ref{app:prompts}); secondly, the keyword-generation module, whose
+prompt and configuration Appendix~\ref{app:prompts} reproduces; and
+thirdly, the deterministic compiler that turns the validated representation
+into Cypher. The evaluation experience spans building instruments as well
+as using them. A 116-query stratified gold set was constructed by hand for
+a task no existing benchmark covers (Section~\ref{subsubsec:ir-extraction}),
+and the component benchmarks report bootstrap confidence intervals
+throughout (Tables~\ref{tab:kw-kpbiomed}--\ref{tab:xenc-results}), a
+reasoning ablation (Table~\ref{tab:ir-reasoning}), per-component and
+per-stratum decompositions (Tables~\ref{tab:ir-decomp}
+and~\ref{tab:ir-stratum}), and run-to-run stability checks for the
+non-deterministic components (Tables~\ref{tab:kw-stability}
+and~\ref{tab:ir-stability}). These evaluations carried deployment stakes,
+since the models they selected are the ones serving the industry partner's
+production system.
+
+\subsection{LO5: Presenting and interpreting data in verbal and written form}
+\textit{Present and interpret data and information in verbal and written
+form.}
+
+The written component comprises the progress report and this report, whose
+Sections~\ref{sec:data-results} and~\ref{sec:analysis-discussion} present the benchmark
+data and interpret it against the research questions, including the
+disciplines of reading overlapping confidence intervals as ties and of
+decomposing a headline accuracy into its binding component. The verbal
+component has run continuously through the placement, with benchmark
+results and design decisions presented at the industry partner's weekly
+stand-ups and in regular academic-supervisor meetings as they were
+produced. The concluding verbal presentation, the ESIPS oral to the
+academic supervisor and the industry partner, is scheduled for
+14 August 2026.
+
+\subsection{LO6: Achievements and shortcomings of AI, and links to other areas}
+\textit{Appreciate some of the main ideas and views in AI, achievements and
+shortcomings of AI and the links between AI and other computer science
+areas.}
+
+The literature review is a sustained critical appraisal of modern AI's
+record on retrieval. Section~\ref{sec:lr-dense} weighs dense retrieval's
+achievements against the share of relevant papers it still misses on
+realistic scientific queries, Section~\ref{sec:lr-rag} presents the
+evidence that LLM query expansion degrades precisely the strong retrievers
+it would need to help, and Section~\ref{sec:lr-graph} separates conceptual
+promise from empirical record for graph methods. The same appraisal is
+turned on this system's own components in Section~\ref{subsec:limitations},
+which records the costs of building artefacts with language models, namely
+occasional generation of unsupported keyphrases, imperfect run-to-run
+reproducibility, and dependence on hosted endpoints that can change without
+notice. The links between AI and neighbouring computer-science areas are
+load-bearing in the architecture rather than incidental. Intent extraction
+meets database query compilation in the IR-to-Cypher design
+(Sections~\ref{sec:lr-nl2q} and~\ref{subsubsec:structured-retrieval}), graph structure and
+information retrieval meet in the typed knowledge graph, and
+Section~\ref{subsec:rq2} turns model selection into a systems-engineering
+question of memory footprint, latency and licensing.

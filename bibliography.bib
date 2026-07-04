@@ -1191,7 +1191,7 @@
   booktitle = {Proceedings of the 29th ACM SIGKDD Conference on Knowledge Discovery and Data Mining (KDD)},
   pages     = {3817--3828},
   year      = {2023},
-  doi       = {10.1145/3580305.3599846}
+  doi       = {10.1145/3580305.3599930}
 }
 
 @inproceedings{zhang2024oagbench,
@@ -1534,4 +1534,139 @@
   title     = {{PubMedQA}: A Dataset for Biomedical Research Question Answering},
   booktitle = {Proceedings of the 2019 Conference on Empirical Methods in Natural Language Processing and the 9th International Joint Conference on Natural Language Processing (EMNLP-IJCNLP)},
   year      = {2019}
+}
+% =====================================================================
+% Re-ranking and keyphrase extraction (added for Sections II-B1 and
+% II-B5).  Venues, pages, and identifiers verified against ACL
+% Anthology, DBLP, ACM DL, and arXiv, July 2026.
+% =====================================================================
+
+@misc{nogueira2019monobert,
+  author       = {Nogueira, Rodrigo and Cho, Kyunghyun},
+  title        = {Passage Re-ranking with {BERT}},
+  howpublished = {arXiv preprint arXiv:1901.04085},
+  year         = {2019},
+  url          = {https://arxiv.org/abs/1901.04085}
+}
+
+@inproceedings{nogueira2020monot5,
+  author    = {Nogueira, Rodrigo and Jiang, Zhiying and Pradeep, Ronak and Lin, Jimmy},
+  title     = {Document Ranking with a Pretrained Sequence-to-Sequence Model},
+  booktitle = {Findings of the Association for Computational Linguistics: EMNLP 2020},
+  pages     = {708--718},
+  year      = {2020},
+  doi       = {10.18653/v1/2020.findings-emnlp.63}
+}
+
+@misc{nogueira2019multistage,
+  author       = {Nogueira, Rodrigo and Yang, Wei and Cho, Kyunghyun and Lin, Jimmy},
+  title        = {Multi-Stage Document Ranking with {BERT}},
+  howpublished = {arXiv preprint arXiv:1910.14424},
+  year         = {2019},
+  url          = {https://arxiv.org/abs/1910.14424}
+}
+
+@article{salton1988termweighting,
+  author  = {Salton, Gerard and Buckley, Christopher},
+  title   = {Term-Weighting Approaches in Automatic Text Retrieval},
+  journal = {Information Processing \& Management},
+  volume  = {24},
+  number  = {5},
+  pages   = {513--523},
+  year    = {1988},
+  doi     = {10.1016/0306-4573(88)90021-0}
+}
+
+@inproceedings{mihalcea2004textrank,
+  author    = {Mihalcea, Rada and Tarau, Paul},
+  title     = {{TextRank}: Bringing Order into Text},
+  booktitle = {Proceedings of the 2004 Conference on Empirical Methods in Natural Language Processing (EMNLP)},
+  pages     = {404--411},
+  year      = {2004},
+  address   = {Barcelona, Spain}
+}
+
+@inproceedings{boudin2018multipartiterank,
+  author    = {Boudin, Florian},
+  title     = {Unsupervised Keyphrase Extraction with Multipartite Graphs},
+  booktitle = {Proceedings of the 2018 Conference of the North American Chapter of the Association for Computational Linguistics: Human Language Technologies, Volume 2 (Short Papers)},
+  pages     = {667--672},
+  year      = {2018},
+  address   = {New Orleans, Louisiana},
+  doi       = {10.18653/v1/N18-2105}
+}
+
+@article{campos2020yake,
+  author  = {Campos, Ricardo and Mangaravite, V{\'i}tor and Pasquali, Arian and Jorge, Al{\'i}pio and Nunes, C{\'e}lia and Jatowt, Adam},
+  title   = {{YAKE}! {K}eyword Extraction from Single Documents Using Multiple Local Features},
+  journal = {Information Sciences},
+  volume  = {509},
+  pages   = {257--289},
+  year    = {2020},
+  doi     = {10.1016/j.ins.2019.09.013}
+}
+
+@misc{grootendorst2020keybert,
+  author       = {Grootendorst, Maarten},
+  title        = {{KeyBERT}: Minimal Keyword Extraction with {BERT}},
+  howpublished = {Software},
+  year         = {2020},
+  doi          = {10.5281/zenodo.4461265}
+}
+
+@inproceedings{kulkarni2022kbir,
+  author    = {Kulkarni, Mayank and Mahata, Debanjan and Arora, Ravneet and Bhowmik, Rajarshi},
+  title     = {Learning Rich Representation of Keyphrases from Text},
+  booktitle = {Findings of the Association for Computational Linguistics: NAACL 2022},
+  pages     = {891--906},
+  year      = {2022},
+  address   = {Seattle, United States},
+  doi       = {10.18653/v1/2022.findings-naacl.67},
+  note      = {Introduces both KBIR and the KeyBART generative model}
+}
+
+@inproceedings{meng2017deepkp,
+  author    = {Meng, Rui and Zhao, Sanqiang and Han, Shuguang and He, Daqing and Brusilovsky, Peter and Chi, Yu},
+  title     = {Deep Keyphrase Generation},
+  booktitle = {Proceedings of the 55th Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers)},
+  pages     = {582--592},
+  year      = {2017},
+  address   = {Vancouver, Canada},
+  doi       = {10.18653/v1/P17-1054}
+}
+
+@inproceedings{boudin2020kpretrieval,
+  author    = {Boudin, Florian and Gallina, Ygor and Aizawa, Akiko},
+  title     = {Keyphrase Generation for Scientific Document Retrieval},
+  booktitle = {Proceedings of the 58th Annual Meeting of the Association for Computational Linguistics},
+  pages     = {1118--1126},
+  year      = {2020},
+  doi       = {10.18653/v1/2020.acl-main.105}
+}
+
+@inproceedings{houbre2022kpbiomed,
+  author    = {Houbre, Ma{\"e}l and Boudin, Florian and Daille, B{\'e}atrice},
+  title     = {A Large-Scale Dataset for Biomedical Keyphrase Generation},
+  booktitle = {Proceedings of the 13th International Workshop on Health Text Mining and Information Analysis (LOUHI)},
+  pages     = {47--53},
+  year      = {2022},
+  address   = {Abu Dhabi, United Arab Emirates},
+  doi       = {10.18653/v1/2022.louhi-1.6}
+}
+
+@inproceedings{cano2020oagkx,
+  author    = {{\c{C}}ano, Erion and Bojar, Ond{\v{r}}ej},
+  title     = {Two Huge Title and Keyword Generation Corpora of Research Articles},
+  booktitle = {Proceedings of the Twelfth Language Resources and Evaluation Conference (LREC)},
+  pages     = {6663--6671},
+  year      = {2020},
+  address   = {Marseille, France}
+}
+
+@inproceedings{sheng2022pubmedake,
+  author    = {Sheng, Jiasheng and Gero, Zelalem and Ho, Joyce C.},
+  title     = {{PubMed} Author-Assigned Keyword Extraction ({PubMedAKE}) Benchmark},
+  booktitle = {Proceedings of the 31st ACM International Conference on Information and Knowledge Management (CIKM)},
+  year      = {2022},
+  doi       = {10.1145/3511808.3557675}
 }
