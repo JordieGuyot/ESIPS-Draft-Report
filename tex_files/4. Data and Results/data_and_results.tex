@@ -32,7 +32,7 @@
 \section{Data and Results}
 \label{sec:data-results}
 
-This section reports the result of each component benchmark from the validation design in Section~\ref{subsec:evaluation-validation}, taking the components in turn. Findings are stated here as observed; their interpretation against the research questions follows in Section~\ref{sec:analysis-discussion}.
+This section reports the result of each component benchmark from the validation design in Section~\ref{subsec:evaluation-validation}, taking the components in turn. Findings are stated here as observed, and their interpretation against the research questions follows in Section~\ref{sec:analysis-discussion}.
 
 % ----------------------------------------------------------------------------
 \subsection{Keyword Generation}
@@ -107,7 +107,7 @@ TextRank & 4.68 & 0.00 \\
 
 % [Fig. PubMedAKE keyword F1@5 chart (fig:kw-pubmedake) moved to Appendix A: Deferred Figures and Tables]
 
-GPT-5.4-nano was benchmarked for keyword generation against the statistical and neural baselines of Section~\ref{subsec:evaluation-validation}, on KPBiomed, OAGKX, and PubMedAKE. Tables~\ref{tab:kw-kpbiomed} to~\ref{tab:kw-pubmedake} report the results for each dataset in turn. Throughout, present (extractive) keyphrases occur verbatim in the source text and absent (abstractive) keyphrases do not; both are scored by F1@5 with light stemming.
+GPT-5.4-nano was benchmarked for keyword generation against the statistical and neural baselines of Section~\ref{subsec:evaluation-validation}, on KPBiomed, OAGKX, and PubMedAKE. Tables~\ref{tab:kw-kpbiomed} to~\ref{tab:kw-pubmedake} report the results for each dataset in turn. Throughout, present (extractive) keyphrases occur verbatim in the source text and absent (abstractive) keyphrases do not, and both are scored by F1@5 with light stemming.
 
 On the present keyphrase tasks, GPT-5.4-nano records the highest score on KPBiomed and PubMedAKE and the second highest on OAGKX, where KeyBART leads. Its margin is widest on PubMedAKE, at 36.44 against a next-best of 24.06.
 
@@ -129,7 +129,7 @@ Deterministic baselines (TF-IDF, YAKE, TextRank, MultipartiteRank, KeyBERT, KBIR
 \end{tabular}
 \end{table}
 
-Table~\ref{tab:kw-stability} reports a reproducibility check for GPT-5.4-nano over three runs on a 2000-document sample. The set-level Jaccard similarity across runs is 0.73: for a given document, around 73 percent of the combined keyphrase set from any two runs is shared by both, equivalent to roughly one in six keyphrases changing between runs. The baselines are reproducible by construction. The run-to-run present-F1 standard deviation is $\pm$0.07, and the same sample reproduces the full-split figures to within roughly a tenth of a point, so the smaller stability sample does not shift the headline results.
+Table~\ref{tab:kw-stability} reports a reproducibility check for GPT-5.4-nano over three runs on a 2000-document sample. The set-level Jaccard similarity across runs is 0.73, so for a given document around 73 percent of the combined keyphrase set from any two runs is shared by both, equivalent to roughly one in six keyphrases changing between runs. The baselines are reproducible by construction. The run-to-run present-F1 standard deviation is $\pm$0.07, and the same sample reproduces the full-split figures to within roughly a tenth of a point, so the smaller stability sample does not shift the headline results.
 
 % ----------------------------------------------------------------------------
 \subsection{IR Extraction}
@@ -139,15 +139,22 @@ Table~\ref{tab:kw-stability} reports a reproducibility check for GPT-5.4-nano ov
 \begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{images/data_and_results/ir_accuracy_ci.png}
-\caption{Natural-language-to-IR joint accuracy by model on the hand-built gold set, with 95 percent bootstrap confidence intervals from 1000 resamples. Each model is shown in its as-deployed or best configuration; GPT-5.4-nano is a three-run mean (single-run range 0.914 to 0.940). Full per-model configuration and confidence bounds are given in Table~\ref{tab:ir-accuracy}.}
+\caption{Natural-language-to-IR joint accuracy by model on the hand-built gold set, with 95 percent bootstrap confidence intervals from 1000 resamples. Each model is shown in its as-deployed or best configuration, and GPT-5.4-nano is a three-run mean (single-run range 0.931 to 0.940). Full per-model configuration and confidence bounds are given in Table~\ref{tab:ir-accuracy}.}
 \label{fig:ir-accuracy}
 \end{figure}
 
-GPT-5.4-nano was benchmarked for natural-language-to-IR extraction against a set of hosted and local models, on the hand-built gold set of queries paired with their correct intermediate representations described in Section~\ref{subsec:evaluation-validation}. The headline measure, IR accuracy, is the joint figure reported in Table~\ref{tab:ir-accuracy}, counting a query as correct only when both its extracted entities and its boolean expression are correct under exact matching.
+GPT-5.4-nano was benchmarked for natural-language-to-IR extraction against a set of hosted and local models, on the hand-built gold set of queries paired with their correct intermediate representations described in Section~\ref{subsec:evaluation-validation}. The headline measure, IR accuracy, is the joint figure reported in Table~\ref{tab:ir-accuracy}, counting a query as correct only when both its extracted entities and its Boolean expression are correct under exact matching.
 
 Figure~\ref{fig:ir-accuracy} plots each model's accuracy with its 95 percent bootstrap interval. The two hosted models lead the benchmark by a clear margin, with GPT-5.4-nano highest at an IR accuracy of 0.937 and GPT-5-mini close behind at 0.931. Both hosted intervals clear those of every local model without overlap, placing the hosted advantage beyond sampling noise, while the two overlap each other and are statistically indistinguishable. Among the local models, the two strongest (qwen3:8b and qwen3:4b) reach around 0.80, and the three smaller models fall away sharply to 0.207, 0.052, and 0.026, near the floor of the task.
 
-Note, the headline 0.937 is the mean of three runs in the model's deployed, default-effort configuration, its single-run range spanning 0.914 to 0.940 (Table~\ref{tab:ir-stability}). Unless noted otherwise, IR-accuracy figures for this model refer to that configuration; where a different configuration is reported below, in particular the reasoning ablation, its levels are not directly comparable to this headline.
+% RESOLVED (author confirmed, July 2026 edit pass): the earlier stated range of
+% 0.914 to 0.940 had absorbed the reasoning-OFF ablation run. Corrected to
+% 0.931 to 0.940, the only range consistent with the 0.937 three-run mean, the
+% 0.004 run-to-run std, and the majority-vote figures in tab:ir-stability
+% (implying runs of {0.931, 0.940, 0.940}). Updated here and in the
+% fig:ir-accuracy caption. NOT in this file: the tab:ir-accuracy table note in
+% Appendix A carries the same 0.914 range and must be corrected there too.
+Note, the headline 0.937 is the mean of three runs in the model's deployed, default-effort configuration, its single-run range spanning 0.931 to 0.940 (Table~\ref{tab:ir-stability}). Unless noted otherwise, IR-accuracy figures for this model refer to that configuration. Where a different configuration is reported below, in particular the reasoning ablation, its levels are not directly comparable to this headline.
 
 \begin{table}[t]
 \caption{Effect of reasoning on IR accuracy.}
@@ -170,7 +177,7 @@ Reasoning is controlled through the Azure \texttt{reasoning\_effort} setting wit
 \end{minipage}
 \end{table}
 
-Table~\ref{tab:ir-reasoning} isolates the effect of reasoning on the two GPT models in a separate single-run ablation, one run per condition, so its levels are not directly comparable to the 0.937 and 0.931 headlines of Table~\ref{tab:ir-accuracy}; the quantity of interest is the within-model change from enabling reasoning. GPT-5.4-nano moves from 0.914 without reasoning to 0.922 with around 246 reasoning tokens per query, a difference of +0.008. GPT-5-mini moves from 0.750 without reasoning to 0.940 with around 896 reasoning tokens per query, a difference of +0.190. These two conditions bracket the default configurations of Table~\ref{tab:ir-accuracy}: the GPT-5 family's API default reasoning effort is medium, under which GPT-5-mini consumed around 384 reasoning tokens per query for its 0.931 headline, while GPT-5.4-nano's default configuration consumed none. The ablation's off condition therefore disables reasoning below the GPT-5-mini default, and its on condition spends a budget above it.
+Table~\ref{tab:ir-reasoning} isolates the effect of reasoning on the two GPT models in a separate single-run ablation, one run per condition, so its levels are not directly comparable to the 0.937 and 0.931 headlines of Table~\ref{tab:ir-accuracy}. The quantity of interest is the within-model change from enabling reasoning. GPT-5.4-nano moves from 0.914 without reasoning to 0.922 with around 246 reasoning tokens per query, a difference of +0.008. GPT-5-mini moves from 0.750 without reasoning to 0.940 with around 896 reasoning tokens per query, a difference of +0.190. These two conditions bracket the default configurations of Table~\ref{tab:ir-accuracy}. The GPT-5 family's API default reasoning effort is medium, under which GPT-5-mini consumed around 384 reasoning tokens per query for its 0.931 headline, while GPT-5.4-nano's default configuration consumed none. The ablation's off condition therefore disables reasoning below the GPT-5-mini default, and its on condition spends a budget above it.
 % VERIFY: state the exact reasoning_effort level used for the "reasoning on"
 % condition (the ~896-token budget suggests high). Source for the medium
 % default: OpenAI GPT-5 API documentation; Azure Foundry's reasoning docs list
@@ -230,7 +237,7 @@ The count $n$ is small per stratum, at sixteen or fewer, so the failure counts a
 \end{minipage}
 \end{table}
 
-Tables~\ref{tab:ir-decomp} and~\ref{tab:ir-stratum} decompose the deployed model's performance by component and by query type. By component, entity extraction records a micro F1 of 0.984 and a macro F1 of 0.982, while expression equivalence is lower at 0.931; a graded variant that credits partially correct expressions reaches 0.985. The joint IR accuracy of 0.937 is therefore bounded by the expression score, since entity extraction almost never fails on its own. By query type, the model records no errors on six of the ten strata, covering single and multiple concepts, exclusions, nesting, mixed entities, and review-style queries. Its errors concentrate in the remaining four. The largest source is \texttt{filter\_distractor}, where three of ten queries fail because the model miscategorises a filter term such as a year or citation bound as a searchable entity. The rest fall on the structurally hardest queries, with two of ten failing on multiple negations, two of twelve on deep nesting, and one of twelve on hard typing. Per-stratum counts are small, at sixteen queries or fewer, so the failure counts are a more reliable read than the rates.
+Tables~\ref{tab:ir-decomp} and~\ref{tab:ir-stratum} decompose the deployed model's performance by component and by query type. By component, entity extraction records a micro F1 of 0.984 and a macro F1 of 0.982, where the micro figure pools every entity across all queries before scoring and the macro figure averages the per-query F1 scores, weighting every query equally. Expression equivalence is lower at 0.931, and a graded variant that credits partially correct expressions reaches 0.985. The joint IR accuracy of 0.937 is therefore bounded by the expression score, since entity extraction almost never fails on its own. By query type, the model records no errors on six of the ten strata, covering single and multiple concepts, exclusions, nesting, mixed entities, and review-style queries. Its errors concentrate in the remaining four. The largest source is \texttt{filter\_distractor}, where three of ten queries fail because the model miscategorises a filter term such as a year or citation bound as a searchable entity. The rest fall on the structurally hardest queries, with two of ten failing on multiple negations, two of twelve on deep nesting, and one of twelve on hard typing. Per-stratum counts are small, at sixteen queries or fewer, so the failure counts are a more reliable read than the rates.
 
 \begin{table}[t]
 \caption{Stability of the deployed model over three runs.}
@@ -270,7 +277,7 @@ Table~\ref{tab:ir-stability} reports a stability check over three runs. Although
 \label{fig:bienc-avg}
 \end{figure*}
 
-text-embedding-3-small was selected as the dense bi-encoder. The candidate models were evaluated on the three ad-hoc search tasks of SciRepEval, namely NFCorpus, TREC-CoVID, and Search, scored by nDCG. The figure reported is SciRepEval full-ranking nDCG over a per-query candidate pool rather than BEIR full-corpus nDCG@10, which keeps the stage comparable to the scientific retrieval benchmark established in Section~\ref{subsec:evaluation-validation}. All scores are nDCG $\times$100 with 95 percent bootstrap intervals from 1000 resamples.
+The candidate bi-encoders were evaluated on the three ad-hoc search tasks of SciRepEval, namely NFCorpus, TREC-CoVID, and Search, scored by nDCG, and text-embedding-3-small was selected as the dense bi-encoder on the basis of this evaluation. The figure reported is SciRepEval full-ranking nDCG over a per-query candidate pool rather than BEIR full-corpus nDCG@10, which keeps the stage comparable to the scientific retrieval benchmark established in Section~\ref{subsec:evaluation-validation}. All scores are nDCG $\times$100 with 95 percent bootstrap intervals from 1000 resamples.
 
 Table~\ref{tab:bienc-results} reports the per-task and average scores in full, and Figure~\ref{fig:bienc-avg} plots each model's average nDCG with its interval. The selected model records an average of 82.10. Qwen3-Embedding-4B holds the highest point estimate at 83.28, but the intervals of the top five models all overlap, forming a statistical tie that contains text-embedding-3-small along with EmbeddingGemma-300M, Qwen3-Embedding-0.6B, and mxbai-embed-large-v1. A clear margin separates this group from the lower three, SPECTER2-adhoc-query at 79.59, BGE-M3 at 79.36, and SPECTER2-base at 78.42, whose intervals fall below the leading cluster.
 
@@ -299,11 +306,11 @@ SPECTER2-base & $\sim$110 M & 768 \\
 \vspace{3pt}
 \begin{minipage}{\linewidth}
 \footnotesize\itshape
-In-memory footprint per stored vector scales with embedding dimension at int8, at roughly one byte per dimension, giving around 65 GB at 768 dimensions, 87 GB at 1024, 131 GB at 1536, and 218 GB at 2560 over the 85 million works. Encoding cost scales with parameter count.
+In-memory footprint per stored vector scales with embedding dimension at int8, at roughly one byte per dimension, giving around 115 GB at 768 dimensions, 154 GB at 1024, 230 GB at 1536, and 384 GB at 2560 over the 150 million works. Encoding cost scales with parameter count.
 \end{minipage}
 \end{table}
 
-Table~\ref{tab:bienc-deploy} records the deployment characteristics that the nDCG scores do not, namely approximate parameter count and embedding dimension, with the int8 memory footprint each dimension implies over the 85 million works given in the table note. The selected model has an embedding dimension of 1536, placing its footprint at around 131 GB, and is served through a paid API rather than self-hosted.
+Table~\ref{tab:bienc-deploy} records the deployment characteristics that the nDCG scores do not, namely approximate parameter count and embedding dimension, with the int8 memory footprint each dimension implies over the 150 million works given in the table note. The selected model has an embedding dimension of 1536, placing its footprint at around 230 GB, and is served through a paid API rather than self-hosted.
 
 % ----------------------------------------------------------------------------
 \subsection{Cross-encoder Re-ranking}
@@ -318,7 +325,7 @@ Table~\ref{tab:bienc-deploy} records the deployment characteristics that the nDC
 \label{fig:xenc-avg}
 \end{figure*}
 
-Cohere Rerank 4.0 Pro was selected as the cross-encoder. The candidate rerankers were evaluated on the same three SciRepEval ad-hoc search tasks as the bi-encoder and under the same nDCG metric, scoring each model by the ranking it produces when it re-ranks the retrieved candidate pool. All scores are nDCG $\times$100 with 95 percent bootstrap intervals from 1000 resamples. The intervals are tight on Search, which has 2585 queries, and wide on TREC-CoVID, which has 50.
+The candidate rerankers were evaluated on the same three SciRepEval ad-hoc search tasks as the bi-encoder and under the same nDCG metric, scoring each model by the ranking it produces when it re-ranks the retrieved candidate pool, and Cohere Rerank 4.0 Pro was selected as the cross-encoder on the basis of this evaluation. All scores are nDCG $\times$100 with 95 percent bootstrap intervals from 1000 resamples. The intervals are tight on Search, which has 2585 queries, and wide on TREC-CoVID, which has 50.
 
 Table~\ref{tab:xenc-results} reports the full per-task and average scores, and Figure~\ref{fig:xenc-avg} plots each model's average with its interval. The selected model holds the highest average at 83.47. Its interval overlaps those of the next three models, Qwen3-Reranker-4B at 83.13, Cohere Rerank 4.0 Fast at 82.78, and Qwen3-Reranker-0.6B at 82.43, so these four form a statistical tie at the top. Within that group the strongest self-hostable model, Qwen3-Reranker-4B, is tied with the selected model. Below the leading four the field descends steadily through a long tail to gte-reranker-modernbert-base at 65.95, a spread of more than seventeen points from top to bottom.
 
@@ -352,7 +359,7 @@ gte-reranker-modernbert-base & $\sim$150 M & Open \\
 \vspace{3pt}
 \begin{minipage}{\linewidth}
 \footnotesize\itshape
-A reranker stores no vectors, so its cost is query-time latency, which scales with parameter count, rather than stored memory. Licences marked ``Open'' are self-hostable but their exact terms should be confirmed against the deployment before selection; the jina-reranker-v2 weights are CC-BY-NC-4.0 and so are non-commercial and not deployable in a commercial product.
+A reranker stores no vectors, so its cost is query-time latency, which scales with parameter count, rather than stored memory. Licences marked ``Open'' are self-hostable but their exact terms should be confirmed against the deployment before selection. The jina-reranker-v2 weights are CC-BY-NC-4.0 and so are non-commercial and not deployable in a commercial product.
 \end{minipage}
 \end{table}
 

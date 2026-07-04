@@ -1,5 +1,5 @@
 % ============================================================================
-%  Appendix: Deferred Figures and Tables
+%  Appendix: Supplementary Figures and Tables
 %  Exhibits moved out of the main body to reduce crowding: the keyword-
 %  extraction F1@5 charts, the natural-language-to-IR accuracy table, and the
 %  full bi-encoder and cross-encoder score tables. Every \label is preserved,
@@ -12,7 +12,7 @@
 
 % Start the appendix on a fresh page (the bibliography ends mid-page above).
 \clearpage
-\section{Deferred Figures and Tables}
+\section{Supplementary Figures and Tables}
 \label{app:deferred}
 
 % --- Keyword extraction F1@5 charts (were Figs 4-6 in the main body) ---------
@@ -39,7 +39,7 @@
 
 % --- Natural-language-to-IR accuracy (was Table IX) --------------------------
 \begin{table*}[t]
-\caption{Natural-language-to-IR accuracy by model. Joint IR accuracy counts a query as correct when both its entities and its boolean expression are correct under exact matching, reported in the as-deployed or best configuration for each model.}
+\caption{Natural-language-to-IR accuracy by model. Joint IR accuracy counts a query as correct when both its entities and its Boolean expression are correct under exact matching, reported in the as-deployed or best configuration for each model.}
 \label{tab:ir-accuracy}
 \centering
 \footnotesize
@@ -60,7 +60,7 @@ llama3.2:3b & Local (Q4) & non-reasoning & 0.026 & [0.000, 0.060] \\
 \vspace{3pt}
 \begin{minipage}{\linewidth}
 \footnotesize\itshape
-Confidence intervals are 95 percent bootstrap over 1000 iterations. Cross-model gaps that fall within these intervals are treated as ties, and bold marks the deployed model. The dagger denotes a three-run mean, whose single-run range is 0.914 to 0.940, with temperature zero returning a byte-identical output on 96.6 percent of queries (Table~\ref{tab:ir-stability}). The double dagger denotes qwen3:4b, whose single-shot configuration produced degenerate empty output, so its thinking configuration is its only usable score.
+Confidence intervals are 95 percent bootstrap over 1000 iterations. Cross-model gaps that fall within these intervals are treated as ties, and bold marks the deployed model. The dagger denotes a three-run mean, whose single-run range is 0.931 to 0.940, with temperature zero returning a byte-identical output on 96.6 percent of queries (Table~\ref{tab:ir-stability}). The double dagger denotes qwen3:4b, whose single-shot configuration produced degenerate empty output, so its thinking configuration is its only usable score.
 \end{minipage}
 \end{table*}
 
