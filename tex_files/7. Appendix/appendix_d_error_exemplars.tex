@@ -1,16 +1,181 @@
 % ============================================================================
-%  Appendix D: Error Exemplars  --  PLACEHOLDER
+%  Appendix D: Error Exemplars
 %  Body-only file. \input after \appendix in main.tex, so \section{Title} auto-
 %  prints "Appendix D: Title" (custom patch in preamble.sty:307) and \label{app:errors}
 %  resolves to the letter via \ref. analysis_and_discussion.tex cites it as
-%  Appendix~\ref{app:errors}.
+%  Appendix~\ref{app:errors} at two points: the keyword-generation exemplar
+%  (Section V-A1) and the filter_distractor exemplar (Section V-A2).
 %
-%  AUTHOR TODO: replace the [In preparation.] note below with the two exemplars
-%  promised in the Analysis section: (i) one hallucinated keyphrase with its
-%  source text, and (ii) one filter_distractor failure with the query and the IR
-%  produced.
+%  FIDELITY: every source text, predicted keyphrase list, query, and IR below is
+%  reproduced VERBATIM from the benchmark artefacts. Model output is shown exactly
+%  as returned (no reordering, no de-duplication, no correction). Provenance notes
+%  give the source file for every record, matching the convention of Appendix C.
+%
+%  LISTINGS: this file relies on the \lstset defined in Appendix C (same document
+%  scope under \input). If Appendix D is ever moved before Appendix C, lift the
+%  \lstset block from appendix_c_prompts.tex to before the first lstlisting here.
 % ============================================================================
+
+% Dynamic heading: \appendix (main.tex) makes this print "Appendix D: Error
+% Exemplars" and adds its own ToC entry; \label resolves to the letter via \ref.
 \section{Error Exemplars}
 \label{app:errors}
 
-\textit{[In preparation.]}
+This appendix reproduces the two failure exemplars referenced from the analysis:
+one from the keyword-generation module (Section~\ref{subsec:rq1}) and one from the
+natural-language-to-IR extractor (Section~\ref{subsec:rq1}). Each is drawn
+verbatim from the benchmark run reported in Section~\ref{sec:data-results}, with
+its source record cited. Both illustrate the characteristic behaviour of a
+language model asked to produce a structured artefact, namely a keyphrase that
+leaves the source text, and a filter term miscategorised as a searchable entity.
+
+% -----------------------------------------------------------------------------
+\subsection*{Keyword generation, keyphrases absent from the source text}
+% -----------------------------------------------------------------------------
+
+The keyword prompt of Appendix~\ref{app:prompts} asks the model to work mostly by
+extraction while also producing a few higher-level keyphrases that need not appear
+verbatim (\lstinline|prompt_variant: generation_tight|). The two records below
+show the two kinds of absent keyphrase this produces, and correspond to the
+present/absent split of Section~\ref{sec:results-keywords}: a legitimately absent
+concept that the reference set also lists, and a genuinely spurious concept the
+model inferred but that appears in neither the source nor the reference set. Both
+are drawn from the deployed \texttt{gpt-5.4-nano} run at temperature zero. In each
+record the predicted list is reproduced exactly as returned, and every
+absent-from-source verdict is that of the benchmark scorer, which lowercases,
+tokenises, Porter-stems, and tests for a contiguous run of stems in the source, so
+that no example turns on a stemming or hyphenation artefact.
+
+\medskip
+\noindent\textbf{Record 1, an absent keyphrase the reference set also lists.}
+PubMedAKE document \lstinline|PMC3647503|. The title and abstract sent to the
+model were:
+
+\begin{lstlisting}
+Campylobacter coli Outbreak in Men Who Have Sex with Men, Quebec, Canada, 2010-2011
+
+During September 2010-November 2011, a cluster of erythromycin-susceptible, tetracycline- and ciprofloxacin-resistant Campylobacter coli pulsovar 1 infections was documented, involving 10 case-patients, in Montreal, Quebec, Canada. The findings suggested sexual transmission of an enteric infection among men who have sex with men.
+\end{lstlisting}
+
+\noindent The model returned the following ranked list (verbatim, fifteen
+keyphrases):
+
+\begin{lstlisting}[language=]
+["campylobacter coli", "men who have sex with men", "erythromycin-susceptible", "tetracycline-resistant", "ciprofloxacin-resistant", "pulsovar 1", "outbreak", "montreal", "quebec", "sexual transmission", "enteric infection", "2010-2011", "cluster of infections", "pulsovar", "antimicrobial resistance"]
+\end{lstlisting}
+
+\noindent Of these, the target keyphrase is \lstinline|antimicrobial resistance|
+(rank~14). It appears nowhere in the source text, yet it stem-matches one of the
+reference set's own absent keyphrases (\lstinline|antimicrobial resistance|), so
+it is a legitimately generated higher-level concept rather than an error, in that
+the paper is about resistant infections, and the reference indexer assigned the same
+term without it appearing verbatim. This is the behaviour the absent-F1 score of
+Section~\ref{sec:results-keywords} is designed to credit. The other fourteen
+predictions are present in the source, with the sole further exception of
+\lstinline|tetracycline-resistant|, absent only because the source writes
+``tetracycline- and ciprofloxacin-resistant'' and the tokens are non-contiguous.
+
+\medskip
+\noindent\textbf{Record 2, a spurious keyphrase matching neither source nor
+reference.} KPBiomed document \lstinline|33768921|. The title and abstract sent to
+the model were:
+
+\begin{lstlisting}
+Atypical solid pseudopapillary tumor of the pancreas in a 14-year-old. Diagnostic approach can be difficult in pediatric pancreatic masses. Our case shows that even though radiologic appearance was not conclusive, surgery remains the main treatment in resectable masses especially in children.
+\end{lstlisting}
+
+\noindent The model returned the following ranked list (verbatim, ten
+keyphrases):
+
+\begin{lstlisting}[language=]
+["atypical solid pseudopapillary tumor", "pancreas", "pediatric pancreatic mass", "solid pseudopapillary tumor", "surgery", "resectable mass", "diagnostic approach", "radiologic appearance", "pediatric oncology", "14-year-old"]
+\end{lstlisting}
+
+\noindent Here the target keyphrase is \lstinline|pediatric oncology| (rank~8). It
+appears nowhere in the source and matches no reference keyphrase, present or
+absent. It is a plausible inference from the paper's subject, a paediatric
+pancreatic tumour, but it is a concept the model introduced rather than one the
+text or the indexer supports, and it is the cleanest single-phrase illustration of
+the spurious generation the extraction framing is meant to minimise. The other
+nine predictions are present in the source.
+
+\medskip
+\noindent Taken together, the two records make the point of the present/absent
+split concrete. Record~1's absent keyphrase is the kind the prompt intends and the
+metric rewards, whereas Record~2's is the kind it does not. Across the benchmark the
+second kind is rare, which is why \texttt{gpt-5.4-nano}'s absent-F1 scores sit in
+the low single digits (Section~\ref{sec:results-keywords}) rather than at zero
+like the purely extractive baselines or higher like a freely generative one.
+
+% -----------------------------------------------------------------------------
+\subsection*{IR extraction, a filter term treated as a searchable entity}
+% -----------------------------------------------------------------------------
+
+The largest single source of IR-extraction error is the
+\lstinline|filter_distractor| stratum (Section~\ref{sec:results-keywords},
+Table~\ref{tab:ir-stratum}), in which the model treats a filter term, such as a
+publication-type or open-access constraint, as a keyword entity rather than
+routing it to the out-of-scope filter fields the prompt defines
+(Appendix~\ref{app:prompts}). The record below is the cleanest of the three
+failures in this stratum. The query as sent to the model was:
+
+\begin{lstlisting}[language=]
+immunotherapy for melanoma, clinical trials
+\end{lstlisting}
+
+\noindent The hand-written gold IR treats ``clinical trials'' as a
+publication-type filter, so it drops out of the boolean core, leaving two keyword
+entities under an AND:
+
+\begin{lstlisting}[language=]
+{
+  "entities": [
+    {"type": "keyword", "value": "immunotherapy"},
+    {"type": "keyword", "value": "melanoma"}
+  ],
+  "expression": {
+    "node_type": "bool_expr", "op": "and",
+    "children": [
+      {"node_type": "entity_ref", "idx": 0},
+      {"node_type": "entity_ref", "idx": 1}
+    ]
+  }
+}
+\end{lstlisting}
+
+\noindent The model instead lifted ``clinical trials'' into the entity list as a
+third keyword and AND-ed it into the expression:
+
+\begin{lstlisting}[language=]
+{
+  "entities": [
+    {"type": "keyword", "value": "immunotherapy"},
+    {"type": "keyword", "value": "melanoma"},
+    {"type": "keyword", "value": "clinical trials"}
+  ],
+  "expression": {
+    "node_type": "bool_expr", "op": "and",
+    "children": [
+      {"node_type": "entity_ref", "idx": 0},
+      {"node_type": "entity_ref", "idx": 1},
+      {"node_type": "entity_ref", "idx": 2}
+    ]
+  }
+}
+\end{lstlisting}
+
+\noindent The two true entities, \lstinline|immunotherapy| and
+\lstinline|melanoma|, are both recovered, so entity recall is~1.0, while the
+spurious \lstinline|clinical trials| entity drops entity precision to~0.67 and,
+because it adds a conjunct the gold expression does not contain, makes the boolean
+expression inequivalent, so the query is scored incorrect under the joint measure.
+The failure is a categorisation slip rather than a structural one, in that the
+model built a well-formed expression but over one entity too many. Its practical
+cost is a candidate pool narrowed by a keyword match on ``clinical trials'' where
+the design intends a publication-type filter, the behaviour
+Section~\ref{subsec:rq1} notes is addressable through prompting that defines filter
+terms explicitly. The other two failures in this stratum are of the same kind, an
+open-access constraint (\lstinline|fd_03|, ``malaria, open access'') and a
+publication-type constraint that the model additionally negated (\lstinline|fd_04|,
+``mRNA vaccines published after 2019, but not reviews''), each adding a filter term
+to the boolean core as a keyword entity.

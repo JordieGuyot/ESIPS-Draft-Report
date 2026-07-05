@@ -1,0 +1,28 @@
+% Abstract for the ESIPS honours thesis.
+% Intended to be pulled into main.tex via \input{tex_files/0. Abstract/abstract.tex}.
+% Assumes an IEEEtran document; wrapped in the abstract environment so it renders
+% in the single-column header before \maketitle's body. Contains no preamble.
+\begin{abstract}
+Deployed literature-search engines force a choice between structured retrieval,
+which answers a query deterministically and auditably, and semantic retrieval,
+which recovers relevance that exact terms miss. This thesis reconciles the two
+paradigms in an industry setting, designing, building, and evaluating a
+production-ready scholarly search system for Latent Knowledge, whose users are
+biomedical researchers. A typed knowledge graph of approximately 150 million
+biomedical works, ingested from the 2026-02-03 OpenAlex snapshot, anchors a
+three-stage retrieval cascade of structured graph retrieval, bi-encoder dense
+retrieval, and cross-encoder re-ranking. A language model is confined to the two
+artefacts the structured stage requires, namely the per-work keyword index built
+offline and the intermediate representation translated from each natural-language
+query, and a deterministic compiler turns that representation into Cypher, so
+that query construction never leaves the compiler. Component benchmarks select
+every deployed model. The translation model reaches a joint accuracy of 0.937 on
+a hand-built stratified gold set of 116 queries, the deployed keyword extractor
+produces the strongest benchmarked index of any candidate across three
+scientific keyphrase datasets, the leading bi-encoders and cross-encoders form
+statistical ties at averages around 82 to 83 nDCG on SciRepEval ad-hoc search,
+and quantising the stored embeddings to int8 is measurably free, with 99.8
+percent of ranking quality retained at half the stored footprint. The comparison
+of the assembled cascade against a retrieval-augmented LLM and Google Scholar is
+specified in the research design and reported in the final submission.
+\end{abstract}

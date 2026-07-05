@@ -82,6 +82,14 @@
 %     benchmark tool schema. All other content checked against the compiled
 %     draft and found faithful; the six III-D6 system-eval FILLs remain
 %     deliberately open.
+%   * Quantisation-results pass (July 2026): III-D5 widened from the single
+%     int8 ablation to the dimension x precision matrix that was actually
+%     run (fp16/int8/fp8 across truncated dimensions, derived read-only
+%     from the cached native-dim fp16 embeddings; sanity condition:
+%     native-dim fp16 must reproduce the bi-encoder baselines). Table III's
+%     quantisation row updated to match. NEW VERIFY at site: document the
+%     quantisation scheme (per-vector int8 scale, fp8 format) and whether
+%     benchmark scoring mirrors MAGE's int8 similarity path.
 % =====================================================================
 
 \section{Research Design}
@@ -166,7 +174,7 @@ The main point of departure concerns keyword modelling. SemOpenAlex, which is al
 \subsubsection{Ingestion and Storage}
 \label{subsubsec:ingestion-storage}
 
-For all purposes excluding benchmarks, the complete OpenAlex snapshot of \textit{[FILL: release date, likely the 2026-02-03 release; confirm from RELEASE\_NOTES.txt at the snapshot root]} was used as the data source, with the version pinned in line with the snapshot-specific citation practice argued for in Section~\ref{subsec:kg-infrastructure}. As established there, OpenAlex is the most suitable index due to its large corpus of works and pre-processed metadata.
+For all purposes excluding benchmarks, the complete OpenAlex snapshot of the 2026-02-03 release was used as the data source, with the version pinned in line with the snapshot-specific citation practice argued for in Section~\ref{subsec:kg-infrastructure}. As established there, OpenAlex is the most suitable index due to its large corpus of works and pre-processed metadata.
 % REVERTED to FILL (verification pass): 2026-02-03 is a real standard-format
 % release (verified against OpenAlex's published RELEASE_NOTES), but which
 % release this ingest consumes was inferred from the 23 Mar--1 Apr download
@@ -186,15 +194,18 @@ For each work in the subset, a keyword generation module and an embedding genera
 % in III-D). The earlier "uncapped" answer conflated this slot with the search
 % component. The stray "10,000" is unrelated to this cap --- see the note under
 % Structured Graph Retrieval.
-% CHANGED (verification pass): dropped "instructed to return only spans that
-% occur in the source". The prompt reproduced verbatim in Appendix C carries
-% no such constraint --- it frames the task as extraction ("Extract the most
-% relevant keywords from the provided scientific text") but never forbids
-% novel spans. A marker comparing body to appendix would catch the mismatch.
-% Restore the claim only if a stricter deployed prompt variant actually
-% carries it, and then reproduce THAT variant in the appendix. Knock-on:
-% Section V-A1's "despite prompting to suppress this" needs the same
-% softening, e.g. "despite the extraction framing of the prompt".
+% SUPERSEDED (repo inspection 2026-07-05): the deployed keyword prompt is the
+% generation_tight variant (config.yaml gen_version v2b), which EXPLICITLY asks
+% the model to "Include both keyphrases that appear in the text and a few
+% important higher-level keyphrases that capture the paper's topic, method, or
+% domain but may not appear verbatim". So the body has been reframed from
+% "hallucination despite extraction framing" (unintended failure) to "mostly
+% extraction, slight generation" (deliberate design). ACTION FOR FINAL PASS:
+% Appendix C currently reproduces the OLD pure-extraction prompt variant, which
+% now contradicts the body. Replace the Appendix C keyword prompt with the
+% deployed generation_tight text, or the body/appendix mismatch remains. The
+% Appendix D exemplars were selected consistent with this framing (one
+% legitimately-absent gold keyphrase, one genuinely spurious concept).
 % VERIFY (added, verification pass): Appendix C's reproduced benchmark config
 % documents max_keywords (n) = 20 as its parse cap. Under F1@5 the first five
 % keyphrases decide the score either way, so the results likely stand, but
@@ -312,8 +323,8 @@ Both models are selected by the benchmarking of Section~\ref{subsec:evaluation-v
         IR extraction        & Query-understanding accuracy & Hand-built stratified gold set & Entity match + logical equivalence   \\
         Dense bi-encoder     & Retrieval quality            & SciRepEval ad-hoc search       & nDCG                                 \\
         Cross-encoder        & Re-ranking quality           & SciRepEval ad-hoc search       & nDCG                                 \\
-        Embedding quantisation & Int8 accuracy cost         & SciRepEval ad-hoc search       & nDCG (full precision vs.\ int8)      \\
-        Assembled cascade    & End-to-end retrieval behaviour (RQ3) & Curated realistic query set (\textit{[FILL: $n$]} queries) & Per-query characterisation + light relevance judgments \\
+        Embedding quantisation & Storage accuracy cost (dimension $\times$ precision) & SciRepEval ad-hoc search & nDCG retention vs.\ native-dim fp16  \\
+        Assembled cascade    & End-to-end retrieval behaviour (RQ3) & Curated realistic query set (20 queries) & Per-query characterisation + light relevance judgments \\
         \bottomrule
     \end{tabularx}
 \end{table}
@@ -333,7 +344,7 @@ Each component designed in Section~\ref{subsec:component-design} is validated in
 \subsubsection{Keyword Generation}
 \label{subsubsec:keyword-generation}
 
-The keyword generation module of Section~\ref{subsubsec:ingestion-storage} is evaluated against three keyphrase datasets, namely KPBiomed \cite{houbre2022kpbiomed}, OAGKX \cite{cano2020oagkx}, and PubMedAKE \cite{sheng2022pubmedake}, each of which pairs documents with reference keyphrases. Reference keyphrases are split into present (extractive) keyphrases, which occur verbatim in the source text, and absent (abstractive) keyphrases, which do not and so must be generated. Each is scored by F1@5, the harmonic mean of precision and recall over the top five predicted keyphrases, with light stemming, so that a keyphrase and its stem count as a match while a different word of the same meaning does not. The present/absent split isolates faithful extraction from generation, which matters because a language-model extractor can hallucinate keyphrases the source does not contain.
+The keyword generation module of Section~\ref{subsubsec:ingestion-storage} is evaluated against three keyphrase datasets, namely KPBiomed \cite{houbre2022kpbiomed}, OAGKX \cite{cano2020oagkx}, and PubMedAKE \cite{sheng2022pubmedake}, each of which pairs documents with reference keyphrases. Reference keyphrases are split into present (extractive) keyphrases, which occur verbatim in the source text, and absent (abstractive) keyphrases, which do not and so must be generated. Each is scored by F1@5, the harmonic mean of precision and recall over the top five predicted keyphrases, with light stemming, so that a keyphrase and its stem count as a match while a different word of the same meaning does not. The present/absent split matters because the keyword module is prompted to work mostly by extraction while also producing a few higher-level keyphrases that capture a paper's topic or method without appearing verbatim, so the split separates the two behaviours, with the present score measuring the extractive component the deterministic matcher depends on and the absent score measuring the small generated share.
 
 The candidates place a large-language-model generator, GPT-5.4-nano, against established statistical and neural baselines: TF-IDF \cite{salton1988termweighting}, YAKE \cite{campos2020yake}, TextRank \cite{mihalcea2004textrank}, and MultipartiteRank \cite{boudin2018multipartiterank} as statistical or graph-based extractors; KeyBERT-MiniLM \cite{grootendorst2020keybert} and KBIR-inspec \cite{kulkarni2022kbir} as neural extractors; and KeyBART \cite{kulkarni2022kbir} as a fine-tuned generative model. The purely extractive baselines can match only present keyphrases by construction, whereas the generative models can also attempt absent ones, so the present/absent split doubles as a comparison between the two families. The LLM generator is sampled at temperature zero, which does not make the hosted endpoint deterministic, so its stability is additionally measured over repeated runs. The baselines decode deterministically (greedy decoding for the generative models, fixed score-based tie-breaking for the statistical extractors) and are reproducible by construction.
 
@@ -370,14 +381,27 @@ Thirteen rerankers are compared: commercial APIs (Cohere Rerank 4.0 in its Pro a
 \subsubsection{Embedding Quantisation}
 \label{subsubsec:embedding-quantisation}
 
-Quantising the embeddings to int8 (Section~\ref{subsubsec:ingestion-storage}) trades precision for memory, so its cost is measured rather than assumed. The bi-encoder evaluation above is repeated with the embeddings held at int8 and compared against the same embeddings at their unquantised precision, and the resulting difference in nDCG is the accuracy cost attributed to the quantisation. This ablation concerns the stored vectors, and is distinct from the weight quantisation used to fit oversized self-hosted candidates on the evaluation GPU, which affects the model rather than its output and is annotated per model in the results tables.
+% CHANGED (quantisation-results pass): widened from the single
+% int8-vs-full-precision ablation to the dimension x precision matrix that
+% was actually run. The reduced-dimension support claim is documented for
+% both families: text-embedding-3-small exposes a "dimensions" API parameter
+% (shorten + renormalise), and Qwen3-Embedding documents user-defined output
+% dimensions (MRL). Add citations if wanted.
+Quantising the stored embeddings to int8 (Section~\ref{subsubsec:ingestion-storage}) trades precision for memory, so its cost is measured rather than assumed. The measurement covers a dimension-by-precision matrix rather than a single int8 ablation, because both selected embedders document support for reduced output dimensions, under which a truncated and re-normalised prefix of the embedding remains a valid representation. The stored dimension is therefore a deployment parameter in the same way the stored precision is. Each configuration is derived read-only from the cached native-dimension fp16 embeddings of the bi-encoder evaluation, by truncating to the target dimension, re-normalising, and quantising to fp16, int8, or fp8, and is scored through the pipeline of Section~\ref{subsubsec:dense-retrieval} unchanged. A sanity check first compares the native-dimension fp16 configuration against the bi-encoder evaluation's baselines. The matrix is run for the deployed hosted embedder and the strongest self-hosted candidate, and the cost of a configuration is its difference in nDCG from the native-dimension fp16 baseline. The comparison that matters for deployment is fp16 against int8, since the graph stores int8 and the MAGE similarity procedure consumes it (Section~\ref{subsubsec:ingestion-storage}). fp8 completes the precision axis but is not used in the deployed path. This ablation concerns the stored vectors, and is distinct from the weight quantisation used to fit oversized self-hosted candidates on the evaluation GPU, which affects the model rather than its output and is annotated per model in the results tables.
+% VERIFY (added, quantisation-results pass): document the quantisation scheme
+% once, here or in Appendix C --- per-vector symmetric int8 with a stored
+% scale is implied by the +4 bytes/vector in the storage accounting; name the
+% fp8 format (e.g. e4m3) --- and state whether the benchmark similarity ran
+% over the quantised integers or dequantised floats. The deployed path is
+% MAGE node_similarity over stored int8 (III-C4), so the ablation should
+% either mirror that computation or note the difference.
 
 \subsubsection{System-Level Evaluation}
 \label{subsubsec:system-level}
 
 The composed system has no off-the-shelf end-to-end benchmark, which reflects the gap identified in Section~\ref{sec:lr-limitations}. Under the separation of concerns above, however, the system's behaviour follows from its parts. The structured stage returns the papers matching the Boolean query, established by the IR and keyword evaluations together with the deterministic compiler, and the dense stages rank those papers, established by their benchmarks. The component results therefore stand as the primary evidence for the system, subject to two limits stated plainly. First, the dense models are benchmarked on a full corpus rather than on the candidate set they rank within the cascade, so their measured quality is a close proxy for their role here rather than a direct measurement of it. Second, the system returns only papers that match the Boolean query, so a paper that is relevant but does not match is not retrieved, which is the precision-oriented behaviour the design intends rather than a defect.
 
-A system-level evaluation confirms both points directly by comparing three systems over the same query set: the assembled cascade, a retrieval-augmented LLM (\textit{[FILL: the system and configuration used, e.g.\ model, retrieval source, settings]}), and Google Scholar. The query set comprises \textit{[FILL: $n$, suggest 20 to 30]} queries, selected to \textit{[FILL: selection criteria, e.g.\ span the structural strata of Section~\ref{subsubsec:ir-extraction} and reflect the biomedical workflows of the industry partner's users]}. For each query, the top \textit{[FILL: $k$, suggest 10 to 20]} results from each system are recorded and characterised qualitatively, what each system surfaces and what it misses, with light relevance judgments assigned by \textit{[FILL: who judges, e.g.\ the author, or the author plus an industry-partner researcher]} on a \textit{[FILL: relevance scale, e.g.\ binary or 0 to 2 graded]} scale. This comparison is the instrument for RQ3, and its results appear in Section~\ref{sec:results-system} and its analysis in Section~\ref{subsec:rq3}.
+A system-level evaluation confirms both points directly by comparing three systems over the same query set: the assembled cascade, a retrieval-augmented LLM (\textit{[FILL: the system and configuration used, e.g.\ model, retrieval source, settings]}), and Google Scholar. The query set comprises 20 queries, selected to span the structural strata of Section~\ref{subsubsec:ir-extraction} and reflect the biomedical workflows of the industry partner's users. For each query, the top 10 results from each system are recorded and characterised qualitatively, what each system surfaces and what it misses, with light relevance judgments assigned by the author on a \textit{[FILL: relevance scale, e.g.\ binary or 0 to 2 graded]} scale. This comparison is the instrument for RQ3, and its results appear in Section~\ref{sec:results-system} and its analysis in Section~\ref{subsec:rq3}.
 % NOTE (user decision pending): the experiment has not yet been run, so the
 % FILL slots above are design decisions still to be made, not just missing
 % facts. The bracketed suggestions are starting points, not commitments.

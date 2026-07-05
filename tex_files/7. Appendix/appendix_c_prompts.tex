@@ -64,75 +64,39 @@ natural-language-to-Intermediate-Representation (NL$\rightarrow$IR) extractor.
 
 The keyword module sends a fixed system prompt plus a per-work user message to an
 Azure OpenAI \texttt{gpt-5.4-nano} deployment and parses a JSON array of
-keyphrases from the completion. The system prompt reproduced below is the
-original \emph{extraction} variant (\lstinline|prompt_variant: extraction|), which
-is the deployed procedure vendored from production and the one described in the
-report body.
+keyphrases from the completion. The system prompt reproduced below is the deployed
+\emph{generation\_tight} variant (\lstinline|prompt_variant: generation_tight|),
+the procedure vendored from production and the one whose results the report body
+describes. It is a mostly-extractive prompt that also asks for a few higher-level
+keyphrases which need not appear verbatim, which is the behaviour the present and
+absent scores of Section~\ref{sec:results-keywords} separate.
 
-% NOTE (explicit, not silent): the source config.yaml currently sets
-%   prompt_variant: generation_tight   (a benchmark-only "Run B" refinement whose
-% text lives in prompts.json -> "generation_system"). Two further variants exist
-% in code (extraction | generation | generation_tight). Per the author's decision
-% only the original *extraction* prompt is reproduced here; the generation
-% variants are not.
+% NOTE (explicit, not silent): the source config.yaml sets
+%   prompt_variant: generation_tight   (gen_version v2b), whose text lives in
+% prompts.json -> "generation_system" and is the variant reproduced below. Two
+% earlier variants exist in code (extraction | generation | generation_tight);
+% the plain "extraction" prompt was the earlier deployed procedure and is NOT
+% reproduced here, since the tabled runs (Tables IV-VI) and the report body all
+% use generation_tight. The prompt asks for "up to 20" keyphrases: that is the
+% count the MODEL is asked to produce. It is distinct from the retention/scoring
+% cap of five (F1@5 scores the top five, and production retains at most five per
+% work, Section III-C2). See the config block below and the note in III-D1.
 
 \begin{lstlisting}
-Extract the most relevant keywords from the provided scientific text for search and indexing purposes and return them as a JSON list.
+Generate a ranked list of up to 20 keyphrases for the scientific text below, for search and indexing, and return ONLY a JSON array of lowercase strings.
 
-Include only technical terms, concepts, or phrases central to the content of the text. Avoid generic or overly broad words unless they are critical to the subject matter. Ensure that the extracted keywords are concise and representative of the scientific content.
+Write keyphrases the way a human indexer would: concise noun phrases, typically 1 to 3 words (4 at most). Do NOT output sentences, clauses, or long descriptive phrases.
 
-# Steps
+List each distinct concept once, using its single most standard surface form. Do NOT include near-duplicate variants, abbreviation-and-expansion pairs, or reworded restatements of the same concept.
 
-1. Analyze the provided scientific text for its primary topics, concepts, and technical terms.
-2. Identify specific keywords or phrases that summarize the main ideas or are important for searchability.
-3. Remove any non-specific, redundant, or irrelevant terms (e.g., articles, conjunctions, or overly generic terms like "studies" or "research").
-4. Return the extracted keywords as a JSON array.
+Preserve technical identifiers exactly as written, including any numbers (for example p53, il-6, brca1, covid-19).
 
-# Output Format
+Include both keyphrases that appear in the text and a few important higher-level keyphrases that capture the paper's topic, method, or domain but may not appear verbatim. Avoid generic filler such as study, research, or results.
 
-```json
-[
-    "keyword1",
-    "keyword2",
-    "...",
-    "keywordN"
-]
-```
+Order the keyphrases from most to least central so that top-k truncation is meaningful.
 
-# Examples
-
-**Input:**
-"Photosynthesis is the process by which green plants and some other organisms use sunlight to synthesize foods with the aid of chlorophyll pigments and carbon dioxide. Plants absorb carbon dioxide (CO2) from the atmosphere and water (H2O) from the soil to produce glucose and oxygen (O2). The process involves the transformation of light energy into chemical energy stored in glucose molecules."
-
-**Output:**
-```json
-[
-    "photosynthesis",
-    "green plants",
-    "chlorophyll pigments",
-    "carbon dioxide",
-    "glucose",
-    "oxygen",
-    "light energy",
-    "chemical energy"
-]
-```
-
-**Input:**
-"The human genome is composed of approximately 3 billion base pairs of DNA, containing the instructions for building and maintaining an organism. Genes, made of DNA, encode proteins, which perform most of the work in cells. Genomic sequencing methods have advanced significantly, allowing for a better understanding of the genetic basis of diseases and traits."
-
-**Output:**
-```json
-[
-    "human genome",
-    "base pairs",
-    "DNA",
-    "genes",
-    "proteins",
-    "genomic sequencing",
-    "genetic basis"
-]
-```
+Example output for a paper on p53 signalling in breast cancer:
+["p53", "breast cancer", "tumor suppressor", "brca1", "apoptosis", "dna damage response", "oncogenesis"]
 \end{lstlisting}
 
 \noindent The user message is a one-line template; the system prompt has no
@@ -171,7 +135,7 @@ tool_choice           : (not sent; left at API defaults)
 
 Client / retries      : AzureOpenAI client max_retries = 0; custom backoff with
                         max_retries = 8, empty_retries = 2 (not API parameters)
-Output/parsing caps   : max_keywords (n) = 20; max_text_chars = 6000
+Output/parsing caps   : max_keywords (n) = 5; max_text_chars = 6000
 \end{lstlisting}
 
 \noindent\textit{Provenance. Source:}

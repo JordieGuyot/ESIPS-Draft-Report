@@ -127,5 +127,78 @@ The metric is SciRepEval ad-hoc-search full-ranking nDCG over a reranking pool, 
 \end{minipage}
 \end{table*}
 
+
+% =====================================================================
+% appendix_quantisation_tables.tex --- full per-task dimension x precision
+% matrices for the Embedding Quantisation results (Section IV-E).
+%
+% Usage: \input{appendix_quantisation_tables} from the Appendix A section
+% of main.tex ("Supplementary Figures and Tables"), or paste the two
+% table* environments into that file directly. Referenced from the body
+% as tab:quant-te3s-full and tab:quant-qwen-full; compact averages live
+% in-body as tab:quant-te3s and tab:quant-qwen (data_and_results.tex).
+%
+% Requires booktabs (already in the main preamble). Numbers transcribed
+% programmatically from scirepeval_results_matrix_*.json.
+% FILL-removal pass (author decision): no bootstrap intervals; cells are
+% stated as point estimates in the table notes, with the reading
+% discipline carried in the Section V-D limitation.
+% =====================================================================
+
+\begin{table*}[t]
+\caption{Full dimension $\times$ precision matrix for text-embedding-3-small, per-task nDCG $\times$100 on the SciRepEval ad-hoc search tasks.}
+\label{tab:quant-te3s-full}
+\centering
+\footnotesize
+\begin{tabular}{@{}r ccc ccc ccc@{}}
+\toprule
+& \multicolumn{3}{c}{NFCorpus} & \multicolumn{3}{c}{TREC-CoVID} & \multicolumn{3}{c}{Search} \\
+\cmidrule(lr){2-4} \cmidrule(lr){5-7} \cmidrule(l){8-10}
+Dim & fp16 & int8 & fp8 & fp16 & int8 & fp8 & fp16 & int8 & fp8 \\
+\midrule
+1536 & 78.78 & 78.79 & 78.76 & 92.38 & 92.38 & 92.38 & 75.14 & 75.15 & 75.14 \\
+1024 & 78.65 & 78.64 & 78.67 & 92.24 & 92.24 & 92.25 & 75.09 & 75.08 & 75.06 \\
+768 & 78.45 & 78.41 & 78.44 & 92.20 & 92.20 & 92.19 & 75.10 & 75.12 & 75.13 \\
+512 & 77.97 & 77.98 & 78.01 & 92.00 & 92.00 & 92.01 & 74.85 & 74.86 & 74.83 \\
+384 & 77.69 & 77.70 & 77.62 & 91.84 & 91.85 & 91.86 & 74.79 & 74.83 & 74.81 \\
+256 & 76.53 & 76.50 & 76.49 & 91.53 & 91.54 & 91.53 & 74.75 & 74.74 & 74.71 \\
+\bottomrule
+\end{tabular}
+
+\vspace{3pt}
+\begin{minipage}{\textwidth}
+\footnotesize\itshape
+Every configuration is derived read-only from the cached native 1536-dimension fp16 embeddings by truncation, L2 re-normalisation, and quantisation, and scored through the same pipeline as Table~\ref{tab:bienc-results}; the 1536/fp16 row is the sanity condition against that table. All cells are point estimates.
+\end{minipage}
+\end{table*}
+
+\begin{table*}[t]
+\caption{Full dimension $\times$ precision matrix for Qwen3-Embedding-4B, per-task nDCG $\times$100 on the SciRepEval ad-hoc search tasks.}
+\label{tab:quant-qwen-full}
+\centering
+\footnotesize
+\begin{tabular}{@{}r ccc ccc ccc@{}}
+\toprule
+& \multicolumn{3}{c}{NFCorpus} & \multicolumn{3}{c}{TREC-CoVID} & \multicolumn{3}{c}{Search} \\
+\cmidrule(lr){2-4} \cmidrule(lr){5-7} \cmidrule(l){8-10}
+Dim & fp16 & int8 & fp8 & fp16 & int8 & fp8 & fp16 & int8 & fp8 \\
+\midrule
+2560 & 80.01 & 80.00 & 79.99 & 94.28 & 94.28 & 94.28 & 75.52 & 75.52 & 75.51 \\
+1536 & 80.02 & 79.98 & 80.00 & 94.36 & 94.36 & 94.36 & 75.39 & 75.37 & 75.39 \\
+1024 & 79.70 & 79.71 & 79.69 & 94.32 & 94.32 & 94.32 & 75.50 & 75.51 & 75.46 \\
+768 & 79.44 & 79.46 & 79.54 & 94.32 & 94.32 & 94.30 & 75.21 & 75.22 & 75.23 \\
+512 & 79.08 & 79.02 & 79.17 & 94.22 & 94.22 & 94.23 & 75.09 & 75.06 & 75.07 \\
+384 & 78.50 & 78.49 & 78.50 & 94.02 & 94.02 & 94.00 & 74.83 & 74.84 & 74.79 \\
+256 & 77.72 & 77.72 & 77.78 & 93.77 & 93.78 & 93.80 & 74.79 & 74.77 & 74.74 \\
+\bottomrule
+\end{tabular}
+
+\vspace{3pt}
+\begin{minipage}{\textwidth}
+\footnotesize\itshape
+Every configuration is derived read-only from the cached native 2560-dimension fp16 embeddings by truncation, L2 re-normalisation, and quantisation, and scored through the same pipeline as Table~\ref{tab:bienc-results}; the 2560/fp16 row is the sanity condition against that table. All cells are point estimates.
+\end{minipage}
+\end{table*}
+
 % Flush all appendix floats before the document ends / any column-mode change.
 \clearpage

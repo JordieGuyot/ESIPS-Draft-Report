@@ -68,7 +68,7 @@ and embedding signals landed, with the hybrid resolving into a cascade in
 which each learned scorer ranks within the pool the previous stage passes
 forward. The strengths-and-weaknesses analysis of the two scorer designs
 runs through Sections~\ref{sec:lr-dense} and~\ref{subsec:rq2}, where
-independent encoding permits precomputation over 85 million works but
+independent encoding permits precomputation over 150 million works but
 cannot model query--document interaction, while joint scoring recovers
 that interaction at a per-pair cost that confines it to the final 100
 candidates. The dense stage is also an exact nearest-neighbour search in
@@ -113,7 +113,7 @@ The implementation experience spans the ML-facing parts of both
 pipelines, built from scratch for this project. On the ingestion side sit
 the keyword-generation and embedding-generation modules, scaled from the
 one-million-node test ingest recorded in the progress report to the full
-85-million-work subset (Section~\ref{subsubsec:ingestion-storage}), and on
+150-million-work subset (Section~\ref{subsubsec:ingestion-storage}), and on
 the evaluation side sit the benchmark harnesses for keyword extraction
 and IR extraction, including the hand-built 116-query stratified gold
 set. The one disclosed exception is the SciRepEval evaluation harness,
