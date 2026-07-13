@@ -90,6 +90,13 @@
 %     quantisation row updated to match. NEW VERIFY at site: document the
 %     quantisation scheme (per-vector int8 scale, fp8 format) and whether
 %     benchmark scoring mirrors MAGE's int8 similarity path.
+%   * Feedback pass (July 2026): entity gloss and plain-words example added
+%     around the III-C3 formalism (supervisor stalled on "entity" and W_i);
+%     the joint "IR accuracy" measure is now named in III-D2 before results
+%     use it; a bootstrap method paragraph added to the III-D introduction
+%     (unit = queries, 1000 resamples, 2.5/97.5 percentiles, per-dataset
+%     resampling then equal-weight averaging, overlap read as inconclusive,
+%     keyword tables carry no intervals). Matches the audited harnesses.
 % =====================================================================
 
 \section{Research Design}
@@ -118,7 +125,7 @@ Validating components in isolation also addresses a specific risk in this pipeli
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=\linewidth]{images/system_architecture.png}
+    \includegraphics[width=\linewidth]{pdfs/figures/research_design/system_architecture.pdf}
     \caption{System architecture. An ingestion pipeline builds the knowledge graph that a three-stage retrieval cascade queries. The candidate pool size is illustrative and varies by query.}
     \label{fig:system-architecture}
 \end{figure}
@@ -160,7 +167,7 @@ The third stage refines the ranking once more. A bi-encoder compares two vectors
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=\linewidth]{images/Schema.png}
+    \includegraphics[width=\linewidth]{pdfs/figures/research_design/schema.pdf}
     \caption{Scholarly knowledge graph schema, with the properties held on each node type.} % VERIFY: caption assumes the updated figure carries the per-node property set moved in from the old Appendix A.
     \label{fig:kg-schema}
 \end{figure}
@@ -253,7 +260,7 @@ The deterministic compiler turns the validated representation into Cypher. Rathe
 % "10,000" was one of these removed compiler limits, not the keyphrase cap
 % (which is five per work --- see the note under Ingestion and Storage).
 
-Formally, for each entity $e_{i}$, let $W_{i}$ be the set of works that match it, subject to the work-level filters. Satisfaction of an expression $\varphi$ by a work $w$, written $w \models \varphi$, is defined by recursion over the structure of $\varphi$,
+An entity here is one typed search term taken from the query, such as a keyword, a researcher name, an institution, or a venue. Formally, for each entity $e_{i}$, let $W_{i}$ be the set of works that match it, subject to the work-level filters. Satisfaction of an expression $\varphi$ by a work $w$, written $w \models \varphi$, is defined by recursion over the structure of $\varphi$,
 %
 \begin{align*}
     w \models e_{i} &\quad\text{iff}\quad w \in W_{i}, \\
@@ -269,6 +276,8 @@ The leaves $e_{i}$ are the query's entities and $E$ is its full Boolean expressi
 \]
 %
 where $\bigcup_{i} W_{i}$ is the set of works matching at least one entity. Restricting the universe in this way ensures that a NOT excludes works within the matched set rather than admitting the works that match nothing, and the recursion preserves arbitrary nesting of the operators.
+
+In plain terms, the leaves of the Boolean tree are the query's entities, $E$ is the whole tree, and a work is a candidate when it matches at least one entity and satisfies the full expression. For the query \emph{papers on CRISPR by Jennifer Doudna}, the entities are the keyword \emph{CRISPR} and the researcher \emph{Jennifer Doudna}, $W_{1}$ and $W_{2}$ are the sets of works matching each, $E$ is the AND of the two, and the stage returns the works that appear in both sets. Drawing the universe from the works that match at least one entity, rather than from the whole corpus, is what makes NOT behave as a reader expects. A query for \emph{CRISPR papers not by Doudna} returns the CRISPR works without her, not the tens of millions of unrelated works that also fail to be by her, because a work has to match some entity in the query before the NOT can exclude it.
 
 The compiled query runs against the database and returns the candidate pool together with its total match count. A worked example of a query, its intermediate representation, and the compiled Cypher is given in Appendix~\ref{app:worked}.
 % PLACEHOLDER (appendix B): reference left as literal text until the worked
@@ -301,7 +310,7 @@ Both models are selected by the benchmarking of Section~\ref{subsec:evaluation-v
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=\linewidth]{images/retrieval_pipeline.png}
+    \includegraphics[width=\linewidth]{pdfs/figures/research_design/retrieval_pipeline.pdf}
     \caption{End-to-end representation of the pipeline, from natural-language query to ranked results.}
     \label{fig:pipeline}
 \end{figure}
@@ -330,6 +339,8 @@ Both models are selected by the benchmarking of Section~\ref{subsec:evaluation-v
 \end{table}
 
 Each component designed in Section~\ref{subsec:component-design} is validated independently, against established benchmarks to allow for a comparison of models, from which one can be selected for the final system. This component-wise validation strategy, as summarised in Table~\ref{tab:validation-design}, acts as the counterpart to the design outlined in Section~\ref{subsec:component-design}, following the design and validation approach of Section~\ref{subsec:design-approach}. The table's final row is the system-level evaluation of Section~\ref{subsubsec:system-level}, which validates the composed cascade rather than a component. The outcome of each benchmark, including the model selected, is reported in the Data and Results section. Self-hosted candidates were evaluated on a single 8\,GB GPU, and models exceeding its memory at their native precision were run with quantised weights (post-training, weight-only, with no quantisation-aware training), with the precision used annotated per model in the results tables.
+
+Uncertainty on the reported scores is estimated by a nonparametric bootstrap over queries. The evaluation queries are resampled with replacement 1000 times, the metric is recomputed on each resample, and the 2.5th and 97.5th percentiles of the resulting distribution give the 95 percent confidence interval. Where an average over several datasets is reported, queries are resampled within each dataset on every iteration and the per-dataset means are then averaged with equal weight, so the interval on the average carries the uncertainty of each dataset. Cross-model gaps whose intervals overlap are not read as established differences, since overlapping intervals leave a comparison inconclusive rather than settled. The keyword benchmark reports point estimates without intervals.
 % CHANGED (verification pass): the previous blanket claim ("int8 ... cast to
 % 8-bit integers at load time, with no calibration") contradicted the results
 % tables --- the local IR-extraction models are annotated "Local (Q4)" in
@@ -362,7 +373,7 @@ and was constructed as follows:
     Where a query was ambiguous in how its terms should be grouped, the wording was tightened or brackets were added, so that each query has a single intended answer.
 \end{enumerate}
 
-Each model is then scored against the hand-written answers on two parts. The first is the entities, the individual terms the model pulled out. These are compared to the correct terms allowing small surface differences, such as a word and its stem, but not accepting a different word of the same meaning, since this stage is meant to capture the terms the user actually wrote rather than paraphrase them. The second is the expression, the way those terms are combined with AND, OR, and NOT. This is judged by logical equivalence, meaning the answer counts as correct if it selects the same papers as the hand-written one, even when written in a different but equivalent form. The same request can be arranged in more than one valid way, for example A AND B is the same as B AND A. Several candidate models are scored this way, with the selected model and the scores reported in the Data and Results section.
+Each model is then scored against the hand-written answers on two parts. The first is the entities, the individual terms the model pulled out. These are compared to the correct terms allowing small surface differences, such as a word and its stem, but not accepting a different word of the same meaning, since this stage is meant to capture the terms the user actually wrote rather than paraphrase them. The second is the expression, the way those terms are combined with AND, OR, and NOT. This is judged by logical equivalence, meaning the answer counts as correct if it selects the same papers as the hand-written one, even when written in a different but equivalent form. The same request can be arranged in more than one valid way, for example A AND B is the same as B AND A. The headline measure for this benchmark, called IR accuracy throughout, is joint over these two parts, in that a query counts as correct only when both its entities and its expression are correct. Several candidate models are scored this way, with the selected model and the scores reported in the Data and Results section.
 
 \subsubsection{Dense Retrieval}
 \label{subsubsec:dense-retrieval}

@@ -154,14 +154,18 @@ Table~\ref{tab:kw-stability} reports a reproducibility check for GPT-5.4-nano ov
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\columnwidth]{images/data_and_results/ir_accuracy_ci.png}
-\caption{Natural-language-to-IR joint accuracy by model on the hand-built gold set, with 95 percent bootstrap confidence intervals from 1000 resamples. Each model is shown in its as-deployed or best configuration, and GPT-5.4-nano is a three-run mean (single-run range 0.931 to 0.940). Full per-model configuration and confidence bounds are given in Table~\ref{tab:ir-accuracy}.}
+\includegraphics[width=\columnwidth]{pdfs/figures/data_and_results/ir_accuracy_ci.pdf}
+\caption{Natural-language-to-IR joint accuracy by model on the hand-built gold set, with 95 percent bootstrap confidence intervals from 1000 resamples. Each model is shown in its as-deployed or best configuration. GPT-5.4-nano is a three-run mean (single-run range 0.931 to 0.940) and carries the percentile interval of a single run. Full per-model configuration and confidence bounds are given in Table~\ref{tab:ir-accuracy}.}
 \label{fig:ir-accuracy}
 \end{figure}
 
 GPT-5.4-nano was benchmarked for natural-language-to-IR extraction against a set of hosted and local models, on the hand-built gold set of queries paired with their correct intermediate representations described in Section~\ref{subsec:evaluation-validation}. The headline measure, IR accuracy, is the joint figure reported in Table~\ref{tab:ir-accuracy}, counting a query as correct only when both its extracted entities and its Boolean expression are correct under exact matching.
 
-Figure~\ref{fig:ir-accuracy} plots each model's accuracy with its 95 percent bootstrap interval. The two hosted models lead the benchmark by a clear margin, with GPT-5.4-nano highest at an IR accuracy of 0.937 and GPT-5-mini close behind at 0.931. Both hosted intervals clear those of every local model without overlap, placing the hosted advantage beyond sampling noise, while the two overlap each other and are statistically indistinguishable. Among the local models, the two strongest (qwen3:8b and qwen3:4b) reach around 0.80, and the three smaller models fall away sharply to 0.207, 0.052, and 0.026, near the floor of the task.
+Figure~\ref{fig:ir-accuracy} plots each model's accuracy with its 95 percent bootstrap interval. The two hosted models lead the benchmark by a clear margin, with GPT-5.4-nano highest at an IR accuracy of 0.937 and GPT-5-mini close behind at 0.931. Both hosted intervals clear those of every local model without overlap, placing the hosted advantage beyond sampling noise, while the two overlap each other, so this benchmark does not separate them.
+% CHANGED (item 2, bootstrap audit): was "statistically indistinguishable".
+% Overlapping marginal intervals do not test the difference; non-overlap
+% establishes one, overlap is inconclusive. Wording aligned with the reading
+% convention now stated in Section III-D. Among the local models, the two strongest (qwen3:8b and qwen3:4b) reach around 0.80, and the three smaller models fall away sharply to 0.207, 0.052, and 0.026, near the floor of the task.
 
 % RESOLVED (author confirmed, July 2026 edit pass): the earlier stated range of
 % 0.914 to 0.940 had absorbed the reasoning-OFF ablation run. Corrected to
@@ -221,6 +225,12 @@ Expression graded & 0.985 & [0.974, 0.995] \\
 \begin{minipage}{\linewidth}
 \footnotesize\itshape
 Joint accuracy is bounded by expression equivalence, since entity extraction almost never fails on its own.
+% ADDED (item 2, bootstrap audit): the joint point estimate is the three-run
+% mean (0.9368) while the printed interval is the percentile bootstrap of the
+% single-run headline (0.9397); no code path bootstraps a k-run mean. Audit
+% option (b): keep 0.937 and disclose the pairing. The same disclosure is
+% needed on the tab:ir-accuracy dagger note in Appendix A.
+The joint point estimate is the mean of three runs and its interval is the percentile bootstrap of a single run whose headline is 0.940. The mismatch is immaterial, since run-to-run variation (a standard deviation of 0.004, Table~\ref{tab:ir-stability}) is an order of magnitude smaller than the interval width.
 \end{minipage}
 \end{table}
 
@@ -288,7 +298,7 @@ Table~\ref{tab:ir-stability} reports a stability check over three runs. Although
 % Combined bi-encoder panel, spanning both columns at the top of the page.
 \begin{figure*}[t]
 \centering
-\includegraphics[width=\textwidth]{images/data_and_results/biencoder_combined.png}
+\includegraphics[width=\textwidth]{pdfs/figures/data_and_results/biencoder_combined.pdf}
 \caption{Dense bi-encoder nDCG across the three SciRepEval ad-hoc search tasks and their average, with 95 percent bootstrap confidence intervals from 1000 resamples. The selected model is shown in orange.}
 \label{fig:bienc-avg}
 \end{figure*}
@@ -336,7 +346,7 @@ Table~\ref{tab:bienc-deploy} records the deployment characteristics that the nDC
 % Combined cross-encoder panel, spanning both columns at the top of the page.
 \begin{figure*}[t]
 \centering
-\includegraphics[width=\textwidth]{images/data_and_results/crossencoder_combined.png}
+\includegraphics[width=\textwidth]{pdfs/figures/data_and_results/crossencoder_combined.pdf}
 \caption{Cross-encoder re-ranking nDCG across the three SciRepEval ad-hoc search tasks and their average, with 95 percent bootstrap confidence intervals from 1000 resamples. The selected model is shown in orange.}
 \label{fig:xenc-avg}
 \end{figure*}

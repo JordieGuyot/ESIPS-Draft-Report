@@ -1,36 +1,33 @@
 % Introduction section for the ESIPS honours thesis.
 % Intended to be pulled into main.tex via \input{introduction} (or \include).
 % Assumes an IEEEtran two-column document; contains no preamble.
-% Section cross-references use \ref{} to auto-numbered labels. The one exception is
-% the Conclusion (Section~VI), left as a literal numeral until that section is written
-% and wired into main.tex; see the PLACEHOLDER note at the end of this file.
+% Section cross-references use \ref{} to auto-numbered labels.
 
-% Introduction section for the ESIPS honours thesis.
-% Intended to be pulled into main.tex via \input{introduction} (or \include).
-% Assumes an IEEEtran two-column document; contains no preamble.
-% Section cross-references use \ref{} to auto-numbered labels. The one exception is
-% the Conclusion (Section~VI), left as a literal numeral until that section is written
-% and wired into main.tex; see the PLACEHOLDER note at the end of this file.
-%
 % Rewrite notes (July 2026 revision):
-%   - Para 2 (industry/deployment context) is new; verify the factual claims
-%     marked VERIFY below before submission.
+%   - Para 2 (industry/deployment context) is new.
 %   - RQ1 now says "modern language models" rather than "modern AI"; the answer
 %     phrasing in Section V-A3 should be updated to match.
 %   - Contributions are stated explicitly (para 4) to give the Originality
 %     criterion something to anchor to.
+%   - Feedback pass (July 2026): the two paradigm definitions in para 1 now
+%     stand independently (semantic retrieval was previously defined only as
+%     recovering what exact terms miss); RQ1 shortened.
  
 \section{Introduction}
 \label{sec:intro}
  
-A literature search asks two things of a retrieval system: firstly, to find the papers that precisely match a set of stated constraints; secondly, to find the papers that are about what the user means. These map onto two retrieval paradigms that have proven difficult to reconcile. Structured retrieval, being exact keyword and Boolean matching over typed metadata, answers a query deterministically, in that a paper either satisfies the constraints or it does not, and the same query returns the same answer. Semantic retrieval, being dense vector embeddings that rank documents by meaning, recovers relevance that exact terms miss, but returns what lies nearest in a learned space rather than what provably matches. The two serve different needs. Assembling an evidence base, as in a systematic review, demands the determinism and auditability of the former; exploring an unfamiliar area rewards the recall of the latter. Deployed literature-search engines force a choice between them.
+A literature search asks two things of a retrieval system: firstly, to find the papers that precisely match a set of stated constraints; secondly, to find the papers that are about what the user means. These map onto two retrieval paradigms that have proven difficult to reconcile. Structured retrieval matches exact keywords and Boolean constraints over typed metadata. It answers a query deterministically, in that a paper either satisfies the constraints or it does not, and the same query always returns the same answer. Semantic retrieval represents queries and papers as dense vectors and ranks papers by how closely their meaning matches the query. It can therefore surface relevant papers whose wording differs from the query, but it returns what lies nearest in a learned space rather than what provably matches. The two serve different needs. Assembling an evidence base, as in a systematic review, demands the determinism and auditability of the former; exploring an unfamiliar area rewards the recall of the latter. Deployed literature-search engines force a choice between them.
  
 This thesis addresses that gap in an industry setting. The work was conducted with an industry partner, Latent Knowledge, whose users are biomedical researchers, and the system it documents is built to production standard for the partner to deploy. A typed scholarly knowledge graph of approximately 150 million biomedical works, built from OpenAlex, is queried through a three-stage retrieval cascade. The production setting shapes the research in two ways. It grounds every model choice in the constraints of a real system, where memory footprint, query latency, and licensing weigh against raw accuracy, and it fixes the corpus at biomedical literature while the schema and architecture remain general purpose.
  
 The aim of this thesis is therefore to design, build, and evaluate a scholarly search system that reconciles the two paradigms rather than choosing between them. Retrieval proceeds in three stages: structured graph retrieval over the knowledge graph produces a candidate set that provably satisfies the query's nested Boolean constraints; bi-encoder dense retrieval ranks that set by semantic similarity; and cross-encoder re-ranking orders the final results. Three research questions structure the evaluation, one for each layer of the design:
  
 \begin{enumerate}
-    \item To what extent can modern language models construct the two artefacts that deterministic structured graph retrieval requires, namely the per-work keyword index extracted offline from the corpus, and the intermediate representation translated from each natural-language query?
+    \item To what extent can modern language models construct the two artefacts that deterministic structured graph retrieval requires, namely the offline per-work keyword index and the intermediate representation translated from each query?
+    % Feedback pass (July 2026): RQ1 shortened per supervisor ("keep it a bit
+    % shorter"). RQ2 kept broad, as he accepted it once the scope was walked
+    % through; substituting "on SciRepEval ad-hoc search benchmarks" remains
+    % an option if a narrower question is preferred.
     \item How well do current bi-encoders and cross-encoders perform semantic ad-hoc search on scientific retrieval benchmarks?
     \item How do the results of the three-stage cascade differ from those of existing search systems, and what explains the differences?
 \end{enumerate}
