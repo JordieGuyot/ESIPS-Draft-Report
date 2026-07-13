@@ -24,7 +24,7 @@
 %    - Setup sentences that duplicated Section III-D verbatim are trimmed to
 %      pointers; only the definitions needed to read the tables remain.
 %    - Item 11 remainder: the IR reasoning-ablation paragraph now reconciles
-%      Table XIV's "default, 384 reasoning tok" for gpt-5-mini (= the GPT-5
+%      Table XIV's "default effort, 384 reasoning tok" for gpt-5-mini (= the GPT-5
 %      family's medium default) with Table VIII's off/on conditions, which
 %      bracket it. One VERIFY remains: the exact effort level of "on".
 %
@@ -400,7 +400,7 @@ Table~\ref{tab:xenc-deploy} records the deployment characteristics, namely appro
 % de-duplication convention. Full per-task matrices: see the appendix
 % snippet file appendix_quantisation_tables.tex.
 
-The dimension-by-precision matrix of Section~\ref{subsubsec:embedding-quantisation} was run for the deployed bi-encoder, text-embedding-3-small, and the strongest self-hosted candidate by point estimate, Qwen3-Embedding-4B. Every configuration is derived read-only from the cached native-dimension fp16 embeddings of the bi-encoder evaluation and scored through the same pipeline, so the native-dimension fp16 row of each matrix is the sanity condition against Table~\ref{tab:bienc-results}. For text-embedding-3-small the condition holds exactly on all three tasks. For Qwen3-Embedding-4B it holds exactly on TREC-CoVID, while NFCorpus and Search agree to within 0.02, well below the smallest between-configuration difference the matrix is read for.
+The dimension-by-precision matrix of Section~\ref{subsubsec:embedding-quantisation} was run for the deployed bi-encoder, text-embedding-3-small, and the strongest self-hosted candidate by point estimate, Qwen3-Embedding-4B. Every configuration is derived from the cached native-dimension fp16 embeddings of the bi-encoder evaluation, without re-encoding the corpus, and scored through the same pipeline, so the native-dimension fp16 row of each matrix is the sanity condition against Table~\ref{tab:bienc-results}. For text-embedding-3-small the condition holds exactly on all three tasks. For Qwen3-Embedding-4B it holds exactly on TREC-CoVID, while NFCorpus and Search agree to within 0.02, well below the smallest between-configuration difference the matrix is read for.
 % NOTE (author decision): the Qwen residue is reported as-is rather than
 % regenerated. If it is ever challenged, re-deriving the matrix from the
 % exact embedding cache behind Table XV should close it; the likely cause is
@@ -428,7 +428,7 @@ Dim & fp16 & int8 & fp8 & Retention & GB (int8) \\
 \vspace{3pt}
 \begin{minipage}{\linewidth}
 \footnotesize\itshape
-Each configuration is derived read-only from the cached native-dimension fp16 embeddings by truncation to the target dimension, L2 re-normalisation, and quantisation, and scored through the same pipeline as Table~\ref{tab:bienc-results}. Retention is the int8 average as a share of the native fp16 average. Storage assumes one byte per dimension plus a four-byte scale per vector at int8. All cells are point estimates.
+Each configuration is derived from the cached native-dimension fp16 embeddings, without re-encoding, by truncation to the target dimension, L2 re-normalisation, and quantisation, and scored through the same pipeline as Table~\ref{tab:bienc-results}. Retention is the int8 average as a share of the native fp16 average. Storage assumes one byte per dimension plus a four-byte scale per vector at int8. All cells are point estimates.
 \end{minipage}
 \end{table}
 

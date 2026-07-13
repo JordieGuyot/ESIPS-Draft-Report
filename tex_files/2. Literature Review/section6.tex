@@ -8,10 +8,10 @@
 \toprule
 \textbf{Benchmark} & \textbf{Corpus} & \textbf{Task} & \textbf{Query style} & \textbf{Size} & \textbf{Metrics} & \textbf{Scope} \\
 \midrule
-BEIR            & Heterogeneous   & Retrieval          & NL / keyword   & 18 datasets     & nDCG@10         & General IR \\
-MS MARCO        & Web passages    & Passage retrieval  & Web queries    & $\sim$1M q       & MRR@10, nDCG    & General IR \\
-TREC DL         & MS MARCO        & Passage/doc retr.  & Web queries    & $\sim$50 topics  & nDCG@10         & General IR \\
-LoTTE           & StackExchange   & Retrieval (OOD)    & NL question    & 5 topics         & Success@5       & General IR \\
+BEIR            & Heterogeneous   & Retrieval          & NL / keyword   & 18 datasets     & nDCG@10         & General retrieval \\
+MS MARCO        & Web passages    & Passage retrieval  & Web queries    & $\sim$1M q       & MRR@10, nDCG    & General retrieval \\
+TREC DL         & MS MARCO        & Passage/doc retr.  & Web queries    & $\sim$50 topics  & nDCG@10         & General retrieval \\
+LoTTE           & StackExchange   & Retrieval (OOD)    & NL question    & 5 topics         & Success@5       & General retrieval \\
 SciDocs         & Sem.\ Scholar   & Paper embed.\ eval & Paper-as-query & 7 tasks          & MAP, nDCG       & Scholarly \\
 CSFCube         & S2ORC (CS)      & Faceted retrieval  & Paper + facet  & 50 queries       & nDCG, R-Prec.   & Scholarly \\
 LitSearch       & ACL + ICLR      & Literature search  & NL question    & 597 queries      & Recall@k        & Scholarly \\
@@ -33,7 +33,7 @@ translation of a natural-language question into a structured query over
 a typed graph and the ranking of the retrieved papers by relevance.
 Table~\ref{tab:benchmarks} summarises the thirteen benchmarks closest
 to this regime. They split into three clusters, each exercising one
-axis only. General-domain IR benchmarks
+axis only. General-domain information-retrieval benchmarks
 (BEIR~\cite{thakur2021beir}, MS~MARCO~\cite{msmarco},
 TREC~DL~\cite{trecdl2019,trecdl2020},
 LoTTE~\cite{santhanam2022colbertv2}) supply the training corpora and

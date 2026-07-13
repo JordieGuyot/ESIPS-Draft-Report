@@ -39,7 +39,7 @@
 % \end{figure*}
 
 % --- Natural-language-to-IR accuracy (was Table IX) --------------------------
-\begin{table*}[t]
+\begin{table}[H]
 \caption{Natural-language-to-IR accuracy by model. Joint IR accuracy counts a query as correct when both its entities and its Boolean expression are correct under exact matching, reported in the as-deployed or best configuration for each model.}
 \label{tab:ir-accuracy}
 \centering
@@ -48,25 +48,25 @@
 \toprule
 Model & Host & Configuration & IR accuracy & 95\% CI \\
 \midrule
-\textbf{gpt-5.4-nano} & Azure & default, 0 reasoning tok & \textbf{0.937}$^{\dagger}$ & [0.897, 0.983] \\
-gpt-5-mini & Azure & default, 384 reasoning tok & 0.931 & [0.879, 0.974] \\
-qwen3:8b & Local (Q4) & single-shot & 0.802 & [0.733, 0.871] \\
-qwen3:4b & Local (Q4) & thinking$^{\ddagger}$ & 0.784 & [0.707, 0.862] \\
-qwen2.5:3b & Local (Q4) & non-reasoning & 0.207 & [0.138, 0.284] \\
-phi4-mini & Local (Q4) & non-reasoning & 0.052 & [0.017, 0.095] \\
-llama3.2:3b & Local (Q4) & non-reasoning & 0.026 & [0.000, 0.060] \\
+\textbf{gpt-5.4-nano} & Azure & default effort, 0 reasoning tok & \textbf{0.937}$^{\dagger}$ & [0.897, 0.983] \\
+gpt-5-mini & Azure & default effort, 384 reasoning tok & 0.931 & [0.879, 0.974] \\
+qwen3:8b & Local (Q4) & reasoning off & 0.802 & [0.733, 0.871] \\
+qwen3:4b & Local (Q4) & reasoning on$^{\ddagger}$ & 0.784 & [0.707, 0.862] \\
+qwen2.5:3b & Local (Q4) & no reasoning mode & 0.207 & [0.138, 0.284] \\
+phi4-mini & Local (Q4) & no reasoning mode & 0.052 & [0.017, 0.095] \\
+llama3.2:3b & Local (Q4) & no reasoning mode & 0.026 & [0.000, 0.060] \\
 \bottomrule
 \end{tabular}
 
 \vspace{3pt}
 \begin{minipage}{\linewidth}
 \footnotesize\itshape
-Confidence intervals are 95 percent bootstrap over 1000 iterations. Cross-model gaps that fall within these intervals are treated as ties, and bold marks the deployed model. The dagger denotes a three-run mean, whose single-run range is 0.931 to 0.940, with temperature zero returning a byte-identical output on 96.6 percent of queries (Table~\ref{tab:ir-stability}). The double dagger denotes qwen3:4b, whose single-shot configuration produced degenerate empty output, so its thinking configuration is its only usable score.
+Confidence intervals are 95 percent bootstrap over 1000 iterations. Cross-model gaps that fall within these intervals are treated as ties, and bold marks the deployed model. The dagger denotes a three-run mean, whose single-run range is 0.931 to 0.940, with temperature zero returning a byte-identical output on 96.6 percent of queries (Table~\ref{tab:ir-stability}). The double dagger denotes qwen3:4b, whose reasoning-off configuration produced degenerate empty output, so its reasoning-on configuration is its only usable score.
 \end{minipage}
-\end{table*}
+\end{table}
 
 % --- Dense bi-encoder full scores (was Table XIV) ---------------------------
-\begin{table*}[t]
+\begin{table}[H]
 \caption{Dense bi-encoder retrieval on SciRepEval ad-hoc search, nDCG $\times$100 with 95 percent bootstrap confidence intervals.}
 \label{tab:bienc-results}
 \centering
@@ -79,11 +79,11 @@ Model & NFCorpus & TREC-CoVID & Search & Average \\
 Qwen3-Embedding-4B (int8) & \textbf{80.02 [77.75, 82.17]} & \textbf{94.28 [92.96, 95.43]} & 75.54 [74.93, 76.17] & \textbf{83.28 [82.35, 84.19]} \\
 EmbeddingGemma-300M & 79.13 [76.84, 81.29] & 92.45 [90.68, 94.03] & 75.32 [74.66, 75.93] & 82.30 [81.32, 83.31] \\
 Qwen3-Embedding-0.6B & 77.94 [75.75, 80.22] & 93.90 [92.52, 95.10] & 75.03 [74.41, 75.65] & 82.29 [81.32, 83.25] \\
-text-embedding-3-small (existing) & 78.78 [76.61, 81.05] & 92.38 [90.58, 93.96] & 75.14 [74.52, 75.74] & 82.10 [81.08, 83.05] \\
+text-embedding-3-small & 78.78 [76.61, 81.05] & 92.38 [90.58, 93.96] & 75.14 [74.52, 75.74] & 82.10 [81.08, 83.05] \\
 mxbai-embed-large-v1 & 79.37 [77.19, 81.72] & 91.77 [90.02, 93.25] & 74.92 [74.29, 75.56] & 82.02 [81.06, 82.96] \\
 SPECTER2-adhoc-query & 70.46 [68.01, 72.97] & 90.08 [87.84, 92.13] & \textbf{78.22 [77.60, 78.86]} & 79.59 [78.46, 80.71] \\
 BGE-M3 & 74.05 [71.72, 76.35] & 89.21 [87.08, 91.16] & 74.82 [74.20, 75.46] & 79.36 [78.29, 80.42] \\
-SPECTER2-base (existing) & 72.03 [69.60, 74.54] & 89.46 [86.99, 91.58] & 73.76 [73.12, 74.41] & 78.42 [77.27, 79.58] \\
+SPECTER2-base & 72.03 [69.60, 74.54] & 89.46 [86.99, 91.58] & 73.76 [73.12, 74.41] & 78.42 [77.27, 79.58] \\
 \bottomrule
 \end{tabular}
 
@@ -92,10 +92,10 @@ SPECTER2-base (existing) & 72.03 [69.60, 74.54] & 89.46 [86.99, 91.58] & 73.76 [
 \footnotesize\itshape
 The metric is SciRepEval ad-hoc-search full-ranking nDCG over a per-query candidate pool, not BEIR full-corpus nDCG@10. Confidence intervals are 95 percent bootstrap [lo, hi] over 1000 iterations with seed 42, and bold marks the best point estimate per column. On Average the top five models' intervals overlap, a statistical tie, and SPECTER2-adhoc-query's Search lead is the one between-model gap whose interval clears the general models.
 \end{minipage}
-\end{table*}
+\end{table}
 
 % --- Cross-encoder full scores (was Table XVI) ------------------------------
-\begin{table*}[t]
+\begin{table}[H]
 \caption{Cross-encoder re-ranking on SciRepEval ad-hoc search, nDCG $\times$100 with 95 percent bootstrap confidence intervals, sorted by Average.}
 \label{tab:xenc-results}
 \centering
@@ -126,7 +126,7 @@ gte-reranker-modernbert-base (150M) & 48.88 [46.82, 50.93] & 79.03 [76.40, 81.60
 \footnotesize\itshape
 The metric is SciRepEval ad-hoc-search full-ranking nDCG over a reranking pool, not BEIR full-corpus nDCG@10. Confidence intervals are 95 percent bootstrap [2.5 percent, 97.5 percent] over 1000 iterations with seed 42, with the Average resampled independently within each dataset. The intervals are tight on Search, which has 2585 queries, and wide on TREC-CoVID, which has 50, and bold marks the best point estimate per column. The top four models, namely Cohere Pro, Qwen3-Reranker-4B, Cohere Fast, and Qwen3-Reranker-0.6B, have heavily overlapping Average intervals and form a statistical tie, within which the best self-hostable model, Qwen3-Reranker-4B at int8, is tied with Cohere Pro. On Search the small candidate pool saturates every reranker at around 75. For reference, the bi-encoder embeddings without intervals give the best embedder Qwen3-Embedding-4B at 83.28 Average, SPECTER2-adhoc-query at 78.22 on Search, which is above every reranker here, and text-embedding-3-small at 82.10 Average.
 \end{minipage}
-\end{table*}
+\end{table}
 
 
 % =====================================================================
@@ -146,7 +146,7 @@ The metric is SciRepEval ad-hoc-search full-ranking nDCG over a reranking pool, 
 % discipline carried in the Section V-D limitation.
 % =====================================================================
 
-\begin{table*}[t]
+\begin{table}[H]
 \caption{Full dimension $\times$ precision matrix for text-embedding-3-small, per-task nDCG $\times$100 on the SciRepEval ad-hoc search tasks.}
 \label{tab:quant-te3s-full}
 \centering
@@ -169,11 +169,11 @@ Dim & fp16 & int8 & fp8 & fp16 & int8 & fp8 & fp16 & int8 & fp8 \\
 \vspace{3pt}
 \begin{minipage}{\textwidth}
 \footnotesize\itshape
-Every configuration is derived read-only from the cached native 1536-dimension fp16 embeddings by truncation, L2 re-normalisation, and quantisation, and scored through the same pipeline as Table~\ref{tab:bienc-results}; the 1536/fp16 row is the sanity condition against that table. All cells are point estimates.
+Every configuration is derived from the cached native 1536-dimension fp16 embeddings, without re-encoding, by truncation, L2 re-normalisation, and quantisation, and scored through the same pipeline as Table~\ref{tab:bienc-results}; the 1536/fp16 row is the sanity condition against that table. All cells are point estimates.
 \end{minipage}
-\end{table*}
+\end{table}
 
-\begin{table*}[t]
+\begin{table}[H]
 \caption{Full dimension $\times$ precision matrix for Qwen3-Embedding-4B, per-task nDCG $\times$100 on the SciRepEval ad-hoc search tasks.}
 \label{tab:quant-qwen-full}
 \centering
@@ -197,9 +197,9 @@ Dim & fp16 & int8 & fp8 & fp16 & int8 & fp8 & fp16 & int8 & fp8 \\
 \vspace{3pt}
 \begin{minipage}{\textwidth}
 \footnotesize\itshape
-Every configuration is derived read-only from the cached native 2560-dimension fp16 embeddings by truncation, L2 re-normalisation, and quantisation, and scored through the same pipeline as Table~\ref{tab:bienc-results}; the 2560/fp16 row is the sanity condition against that table. All cells are point estimates.
+Every configuration is derived from the cached native 2560-dimension fp16 embeddings, without re-encoding, by truncation, L2 re-normalisation, and quantisation, and scored through the same pipeline as Table~\ref{tab:bienc-results}; the 2560/fp16 row is the sanity condition against that table. All cells are point estimates.
 \end{minipage}
-\end{table*}
+\end{table}
 
 % Flush all appendix floats before the document ends / any column-mode change.
 \clearpage
