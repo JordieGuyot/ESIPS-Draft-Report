@@ -138,17 +138,6 @@ Client / retries      : AzureOpenAI client max_retries = 0; custom backoff with
 Output/parsing caps   : max_keywords (n) = 5; max_text_chars = 6000
 \end{lstlisting}
 
-\noindent\textit{Provenance. Source:}
-\lstinline|keyword_benchmark/benchmark/reference/extract_keywords.py|
-\textit{, system prompt} \lstinline|_SYSTEM_PROMPT| \textit{lines 37--94, user
-template} \lstinline|_USER_PROMPT| \textit{line 96, live call site lines
-345--387; call parameters from} \lstinline|benchmark/config.yaml| \textit{and}
-\lstinline|_load_azure_config()| \textit{lines 183--202. Working copy}
-\lstinline|/home/jordanguyot/homeserver/lk_ws/keyword_benchmark| \textit{is not a
-git repository, so no commit hash is available (file dated 2026-06-04); the
-version-controlled upstream is} \lstinline|litview-keyword-benchmark| \textit{and
-the extraction procedure itself is vendored from production} \lstinline|litview-kg|\textit{.}
-
 % -----------------------------------------------------------------------------
 \subsection*{IR-extraction system prompt}
 % -----------------------------------------------------------------------------
@@ -209,18 +198,6 @@ Extract exactly what the query states. Do not invent entities.
 sending \lstinline|max_completion_tokens=2048|; \texttt{temperature} is sent only
 when non-zero (default \texttt{0.0}, so omitted), as \texttt{gpt-5} reasoning
 deployments reject a non-default temperature.
-
-\medskip
-\noindent\textit{Provenance. Source:}
-\lstinline|nl_to_ir_benchmark/nl2ir_eval/azure_extractor.py|\textit{,}
-\lstinline|_SYSTEM_PROMPT| \textit{lines 104--138, forced-tool call site (}\lstinline|_call_model|\textit{)
-lines 247--267. Working copy}
-\lstinline|/home/jordanguyot/homeserver/lk_ws/nl_to_ir_benchmark| \textit{is not a
-git repository, so no commit hash is available (file dated 2026-06-23). This is
-the benchmark copy, adapted/trimmed from the production extractor}
-\lstinline|litview-qapi/api/pipeline/extract.py :: LLMExtractor| \textit{(see}
-\lstinline|DECISIONS.md| \textit{D21); it is not byte-identical to the deployed
-production prompt.}
 
 % -----------------------------------------------------------------------------
 \subsection*{IR tool schema}
@@ -295,11 +272,3 @@ entities.
   }
 }
 \end{lstlisting}
-
-\noindent\textit{Provenance. Source:}
-\lstinline|nl_to_ir_benchmark/nl2ir_eval/azure_extractor.py|\textit{,}
-\lstinline|_EXTRACTION_TOOL| \textit{(function wrapper) lines 91--101 and}
-\lstinline|_EXTRACTION_TOOL_SCHEMA| \textit{(parameters) lines 47--89. Working
-copy} \lstinline|/home/jordanguyot/homeserver/lk_ws/nl_to_ir_benchmark|
-\textit{is not a git repository (file dated 2026-06-23); the schema "mirrors the
-production WorksSearchIR".}

@@ -14,6 +14,11 @@
 %     recovering what exact terms miss); RQ1 shortened.
 %   - Feedback pass 2 (July 2026, clarity sweep): Cypher glossed at first
 %     use in contribution (ii).
+%   - Feedback pass 3 (July 2026): contribution (iv) now names the
+%     natural-language-to-IR translator evaluation alongside the other
+%     component evaluations (it was the only benchmarked component the
+%     list omitted); "(IR)" glossed at first use in (ii) so (iii) and
+%     (iv) read cleanly. RQ2 left broad per the standing note below.
  
 \section{Introduction}
 \label{sec:intro}
@@ -34,6 +39,6 @@ The aim of this thesis is therefore to design, build, and evaluate a scholarly s
     \item How do the results of the three-stage cascade differ from those of existing search systems, and what explains the differences?
 \end{enumerate}
  
-In answering these, the thesis makes four contributions: (i) a typed scholarly knowledge graph of approximately 150 million works, with a documented schema and ingestion pipeline from the OpenAlex snapshot; (ii) a natural-language query interface that decouples LLM-based intent extraction from deterministic compilation into Cypher, a graph query language, through a JSON intermediate representation; (iii) a hand-built, stratified benchmark for the natural-language-to-IR translation task, which no existing benchmark covers; and (iv) component-level evaluations of keyword extractors, bi-encoders, and cross-encoders that select the deployed models and make the accuracy and deployment trade-offs of each choice explicit.
+In answering these, the thesis makes four contributions: (i) a typed scholarly knowledge graph of approximately 150 million works, with a documented schema and ingestion pipeline from the OpenAlex snapshot; (ii) a natural-language query interface that decouples LLM-based intent extraction from deterministic compilation into Cypher, a graph query language, through a JSON intermediate representation (IR); (iii) a hand-built, stratified benchmark for the natural-language-to-IR translation task, which no existing benchmark covers; and (iv) component-level evaluations of keyword extractors, natural-language-to-IR translators, bi-encoders, and cross-encoders that select the deployed models and make the accuracy and deployment trade-offs of each choice explicit.
  
 The remainder of this report is organised as follows. Section~\ref{sec:litreview} reviews the literature on scholarly retrieval, positioning the design against dense retrieval, re-ranking, graph-augmented methods, structured-query translation, and keyphrase extraction, and surveying the systems and benchmarks currently available. Section~\ref{sec:research-design} presents the research design: the system architecture, the graph schema and ingestion pipeline, the design of each retrieval stage, and the methodology used to validate them. Section~\ref{sec:data-results} reports the outcome of each component benchmark, which Section~\ref{sec:analysis-discussion} then analyses against the three research questions. Section~\ref{sec:conclusion} draws conclusions and identifies future work.

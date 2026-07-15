@@ -97,6 +97,27 @@
 %     (unit = queries, 1000 resamples, 2.5/97.5 percentiles, per-dataset
 %     resampling then equal-weight averaging, overlap read as inconclusive,
 %     keyword tables carry no intervals). Matches the audited harnesses.
+%   * Supervisor clarity pass (July 2026, from the 13 Jul meeting
+%     annotations): III-B OpenAlex-choice sentence compressed to a
+%     cross-reference; "not incidental products" reworded plainly;
+%     "high-recall candidate set / output is unbounded" replaced with
+%     the exact guarantee (exhaustive w.r.t. the Boolean match,
+%     unbounded in size) so it no longer collides with the V-D recall
+%     bound; III-D5 opening clause tightened. Companion lit-review
+%     edits in section3/4/5.tex. All FILL and VERIFY slots untouched.
+%     STILL OPEN at III-D4 -- RESOLVED (author, this session): the
+%     rerankers re-rank the same SciRepEval per-query candidate pools
+%     the bi-encoder evaluation ranks; the III-D4 sentence now says so.
+%     Knock-on: IV-D's "re-ranks the retrieved candidate pool" wording
+%     can echo this when data_and_results is next edited.
+%   * Comparator pass (July 2026): III-D6 rewritten. The RAG-LLM comparator
+%     is replaced by PubMed and Semantic Scholar alongside Google Scholar,
+%     the two remaining FILL slots are closed (the LLM-config slot deleted
+%     with the comparator, the relevance scale set to graded 0 to 2), and
+%     the entry protocol, default-ranking, inexpressible-query, and
+%     access-date decisions are written in. See the NOTE at site. Knock-ons
+%     applied in abstract, IV-F, V-C, VI-A; II-C2 gains a PubMed
+%     description (section4.tex).
 % =====================================================================
 
 \section{Research Design}
@@ -141,7 +162,7 @@ At a high level, the system uses an ingestion pipeline that:
     \item loads the result into the database.
 \end{itemize}
 
-OpenAlex was chosen as the source because it is the largest fully open scholarly index and is the successor to the Microsoft Academic Graph, as established in Section~\ref{subsec:kg-infrastructure}. The keyphrases and embeddings extracted in this stage are not incidental products. They are the data that the first and second retrieval stages depend on. How each field is sourced and extracted, and the schema the data is transformed into, are documented in Section~\ref{subsec:component-design}.
+OpenAlex was chosen as the source for the reasons established in Section~\ref{subsec:kg-infrastructure}. The keyphrases and embeddings extracted in this stage are the inputs the first and second retrieval stages run on. How each field is sourced and extracted, and the schema the data is transformed into, are documented in Section~\ref{subsec:component-design}.
 
 For retrieval, the system uses a three-stage pipeline:
 
@@ -153,7 +174,7 @@ For retrieval, the system uses a three-stage pipeline:
 
 This extends the two-stage retrieve-then-rerank pattern common to large-scale retrieval systems, placing a knowledge-graph candidate selector in front of the embedding-retrieval and cross-encoder re-ranking stages. Because the three stages increase in both accuracy and cost, each runs over a smaller set than the last, which is necessary because the most accurate stage cannot be run over the full corpus.
 
-Each stage also performs a function the others cannot, which is why all three are present rather than any one alone. The first stage lets the system express typed or structural queries that the other two cannot. As established in Section~\ref{sec:lr-dense}, single-vector dense retrieval cannot represent requests such as papers from a particular author on a given topic published after a given year. Structured retrieval expresses these directly and returns a high-recall candidate set for the later stages to rank. Its output is unbounded. The structured representation and its compilation into a graph query are documented in Section~\ref{subsec:component-design}.
+Each stage also performs a function the others cannot, which is why all three are present rather than any one alone. The first stage lets the system express typed or structural queries that the other two cannot. As established in Section~\ref{sec:lr-dense}, single-vector dense retrieval cannot represent requests such as papers from a particular author on a given topic published after a given year. Structured retrieval expresses these directly and returns every work that satisfies the query's Boolean expression, a candidate set that is exhaustive with respect to the match and unbounded in size, for the later stages to rank. The structured representation and its compilation into a graph query are documented in Section~\ref{subsec:component-design}.
 
 The second stage ranks that candidate set by semantic similarity, which structured retrieval cannot do, since it matches only on the entities and keywords a work shares with the query. Dense embeddings rank candidates by their semantic relatedness to the full query, capturing relevance that exact-term matching misses. Section~\ref{sec:lr-dense} also showed that dense retrieval used alone misses a substantial share of relevant papers and is weak on entity-heavy queries, which is why it ranks a structured candidate set here rather than serving as the primary retrieval mechanism. The embeddings are quantised to reduce their memory footprint, with the quantisation and its justification documented in Section~\ref{subsec:component-design}.
 
@@ -385,7 +406,7 @@ The candidates comprise general-purpose embedders (Qwen3-Embedding at 0.6B and 4
 \subsubsection{Cross-Encoder Re-ranking}
 \label{subsubsec:cross-encoder}
 
-The cross-encoder is evaluated on the same SciRepEval ad-hoc search tasks under the same metric, by re-ranking the retrieved candidates, so the gain it adds can be read directly against the bi-encoder alone.
+The cross-encoder is evaluated on the same SciRepEval ad-hoc search tasks under the same metric, re-ranking the same per-query candidate pools that the bi-encoder evaluation ranks (Section~\ref{subsubsec:dense-retrieval}), so the two stages are scored over identical pools and the gain the cross-encoder adds can be read directly against the bi-encoder alone.
 
 Thirteen rerankers are compared: commercial APIs (Cohere Rerank 4.0 in its Pro and Fast tiers); self-hostable neural rerankers (the Qwen3-Reranker at 0.6B and 4B, jina-reranker-v2, and mxbai-rerank-large-v1); a biomedical domain-specific model (MedCPT); and older cross-encoder baselines (the ms-marco-MiniLM and bge-reranker families, and gte-reranker-modernbert-base). This spread lets the results separate model family and recency from raw parameter count, and general-purpose rerankers from the domain-specific one.
 
@@ -398,7 +419,7 @@ Thirteen rerankers are compared: commercial APIs (Cohere Rerank 4.0 in its Pro a
 % both families: text-embedding-3-small exposes a "dimensions" API parameter
 % (shorten + renormalise), and Qwen3-Embedding documents user-defined output
 % dimensions (MRL). Add citations if wanted.
-Quantising the stored embeddings to int8 (Section~\ref{subsubsec:ingestion-storage}) trades precision for memory, so its cost is measured rather than assumed. The measurement covers a dimension-by-precision matrix rather than a single int8 ablation, because both selected embedders document support for reduced output dimensions, under which a truncated and re-normalised prefix of the embedding remains a valid representation. The stored dimension is therefore a deployment parameter in the same way the stored precision is. Each configuration is derived from the cached native-dimension fp16 embeddings of the bi-encoder evaluation without re-encoding the corpus, by truncating to the target dimension, re-normalising, and quantising to fp16, int8, or fp8, and is scored through the pipeline of Section~\ref{subsubsec:dense-retrieval} unchanged. A sanity check first compares the native-dimension fp16 configuration against the bi-encoder evaluation's baselines. The matrix is run for the deployed hosted embedder and the strongest self-hosted candidate, and the cost of a configuration is its difference in nDCG from the native-dimension fp16 baseline. The comparison that matters for deployment is fp16 against int8, since the graph stores int8 and the MAGE similarity procedure consumes it (Section~\ref{subsubsec:ingestion-storage}). fp8 completes the precision axis but is not used in the deployed path. This ablation concerns the stored vectors, and is distinct from the weight quantisation used to fit oversized self-hosted candidates on the evaluation GPU, which affects the model rather than its output and is annotated per model in the results tables.
+Quantising the stored embeddings to int8 (Section~\ref{subsubsec:ingestion-storage}) trades precision for memory, so this benchmark measures that cost rather than assuming it is negligible. The measurement covers a dimension-by-precision matrix rather than a single int8 ablation, because both selected embedders document support for reduced output dimensions, under which a truncated and re-normalised prefix of the embedding remains a valid representation. The stored dimension is therefore a deployment parameter in the same way the stored precision is. Each configuration is derived from the cached native-dimension fp16 embeddings of the bi-encoder evaluation without re-encoding the corpus, by truncating to the target dimension, re-normalising, and quantising to fp16, int8, or fp8, and is scored through the pipeline of Section~\ref{subsubsec:dense-retrieval} unchanged. A sanity check first compares the native-dimension fp16 configuration against the bi-encoder evaluation's baselines. The matrix is run for the deployed hosted embedder and the strongest self-hosted candidate, and the cost of a configuration is its difference in nDCG from the native-dimension fp16 baseline. The comparison that matters for deployment is fp16 against int8, since the graph stores int8 and the MAGE similarity procedure consumes it (Section~\ref{subsubsec:ingestion-storage}). fp8 completes the precision axis but is not used in the deployed path. This ablation concerns the stored vectors, and is distinct from the weight quantisation used to fit oversized self-hosted candidates on the evaluation GPU, which affects the model rather than its output and is annotated per model in the results tables.
 % VERIFY (added, quantisation-results pass): document the quantisation scheme
 % once, here or in Appendix C --- per-vector symmetric int8 with a stored
 % scale is implied by the +4 bytes/vector in the storage accounting; name the
@@ -412,7 +433,19 @@ Quantising the stored embeddings to int8 (Section~\ref{subsubsec:ingestion-stora
 
 The composed system has no off-the-shelf end-to-end benchmark, which reflects the gap identified in Section~\ref{sec:lr-limitations}. Under the separation of concerns above, however, the system's behaviour follows from its parts. The structured stage returns the papers matching the Boolean query, established by the IR and keyword evaluations together with the deterministic compiler, and the dense stages rank those papers, established by their benchmarks. The component results therefore stand as the primary evidence for the system, subject to two limits stated plainly. First, the dense models are benchmarked on a full corpus rather than on the candidate set they rank within the cascade, so their measured quality is a close proxy for their role here rather than a direct measurement of it. Second, the system returns only papers that match the Boolean query, so a paper that is relevant but does not match is not retrieved, which is the precision-oriented behaviour the design intends rather than a defect.
 
-A system-level evaluation confirms both points directly by comparing three systems over the same query set: the assembled cascade, a retrieval-augmented LLM (\textit{[FILL: the system and configuration used, e.g.\ model, retrieval source, settings]}), and Google Scholar. The query set comprises 20 queries, selected to span the structural strata of Section~\ref{subsubsec:ir-extraction} and reflect the biomedical workflows of the industry partner's users. For each query, the top 10 results from each system are recorded and characterised qualitatively, what each system surfaces and what it misses, with light relevance judgments assigned by the author on a \textit{[FILL: relevance scale, e.g.\ binary or 0 to 2 graded]} scale. This comparison is the instrument for RQ3, and its results appear in Section~\ref{sec:results-system} and its analysis in Section~\ref{subsec:rq3}.
-% NOTE (user decision pending): the experiment has not yet been run, so the
-% FILL slots above are design decisions still to be made, not just missing
-% facts. The bracketed suggestions are starting points, not commitments.
+A system-level evaluation confirms both points directly by comparing four systems over the same query set: the assembled cascade, Google Scholar, PubMed, and Semantic Scholar. The three comparators are deployed engines in wide use, and each carries one of the retrieval designs the review surveyed (Section~\ref{subsec:traditional-search}), with PubMed offering field-tagged Boolean search over the MeSH controlled vocabulary, Google Scholar ranking web-scale full text, and Semantic Scholar layering citation-informed embeddings over its literature graph. All three return ranked paper lists, the same output contract as the cascade, so the comparison is like for like. The LLM-augmented assistants of Section~\ref{subsec:llm-agentic} are excluded on that contract, since they return synthesised answers rather than ranked lists and retrieve through engines of this kind rather than competing with them.
+
+The query set comprises 20 queries, selected to span the structural strata of Section~\ref{subsubsec:ir-extraction} and reflect the biomedical workflows of the industry partner's users. Each query is entered verbatim into each system's standard search interface, and each engine is left on its default relevance ranking, so every system receives the same input and the differences observed come from the systems rather than from the inputs. Where an engine cannot express a query as written, for example a nested Boolean composition its search box does not parse, this is recorded as a finding for that query rather than worked around, since what each engine can and cannot express is part of what the comparison measures. For each query, the top 10 results from each system are recorded and characterised qualitatively, what each system surfaces and what it misses, with light relevance judgments assigned by the author on a graded 0 to 2 scale (not relevant, partially relevant, relevant).
+
+The engines are live services over corpora that differ from the cascade's pinned snapshot, so the corpus cannot be held fixed and coverage differences are observed rather than controlled. Each result list is therefore recorded with the query string entered and the access date, in line with the version-specific citation practice of Section~\ref{subsec:kg-infrastructure}. This comparison is the instrument for RQ3, and its results appear in Section~\ref{sec:results-system} and its analysis in Section~\ref{subsec:rq3}.
+% NOTE (comparator pass, July 2026): the RAG-LLM comparator is removed. The
+% LLM assistants differ in output contract (II-C3) and retrieve through
+% engines of this class, so the comparison now runs against the engines
+% themselves. Decisions taken this pass, confirm before the runs: comparator
+% set (Google Scholar, PubMed, Semantic Scholar); verbatim natural-language
+% entry with default ranking for every system; inexpressible queries recorded
+% as findings; graded 0/1/2 relevance scale (closes the old FILL); query
+% string and access date recorded per result list. Alternative entry protocol
+% if preferred: give PubMed a faithful hand translation into its field-tagged
+% syntax (its expert-use mode) alongside or instead of the verbatim string,
+% and state whichever is run.

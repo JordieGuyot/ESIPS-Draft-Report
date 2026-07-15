@@ -8,17 +8,16 @@
 \subsection{Recent research advances}
 \label{sec:recent-advances}
 
-Five threads of recent work bear on the design, and this thesis takes a
-different stance toward each: dense retrieval and the cross-encoder
-re-ranking reviewed alongside it are adopted as the cascade's two
-ranking stages (Section~\ref{sec:lr-dense}); graph augmentation is
-treated as motivation for the typed graph rather than as a baseline to
-copy (Section~\ref{sec:lr-graph}); structured-query translation is the
-design pursued for the first stage (Section~\ref{sec:lr-nl2q}); query
-reformulation is set aside (Section~\ref{sec:lr-rag}); and keyphrase
-extraction supplies the corpus-side index that the structured stage
-matches against (Section~\ref{sec:lr-keyphrase}).  The grounds for each
-stance open the corresponding subsection.
+Five threads of recent work bear on the design: dense retrieval and
+the cross-encoder re-ranking reviewed alongside it
+(Section~\ref{sec:lr-dense}), graph augmentation
+(Section~\ref{sec:lr-graph}), natural-language-to-structured-query
+translation (Section~\ref{sec:lr-nl2q}), query reformulation
+(Section~\ref{sec:lr-rag}), and keyphrase extraction
+(Section~\ref{sec:lr-keyphrase}).  This thesis takes a different
+stance toward each, from adopting a method as a stage of the cascade
+to setting one aside entirely, and each subsection below opens by
+stating the stance taken and the grounds for it.
 
 \subsubsection{Scholarly embeddings, dense retrieval, and re-ranking for scientific text}
 \label{sec:lr-dense}
@@ -33,22 +32,31 @@ scoring recovers earns the cross-encoder the final one.
 Three lines of progress have improved dense retrieval without removing
 the failure that matters most here, which is unreliable behaviour on
 the entity-heavy and lexically precise queries that a structured stage
-answers by construction.  Scaling the training distribution, from DPR
-\cite{karpukhin2020dpr} through unsupervised contrastive pre-training
-\cite{izacard2022contriever} to weakly supervised pairs at web scale
-\cite{wang2022e5,li2023gte,xiao2023cpack,chen2024bgem3}, lifted average
-quality on the BEIR suite \cite{thakur2021beir} while leaving exactly
-that weakness in place.  Late interaction
-\cite{khattab2020colbert,santhanam2022colbertv2} and learned sparse
-retrieval \cite{formal2021splade,formal2022splade} showed instead that
-preserving finer-grained interaction between query and document terms
-buys accuracy at modest cost, and ColBERTv2 does so while shrinking a
-late-interaction index by a factor of 6 to 10
+answers by construction.  The first line scaled the training
+distribution.  DPR \cite{karpukhin2020dpr} trained the retriever on
+labelled question--passage pairs, unsupervised contrastive
+pre-training removed the need for those labels
+\cite{izacard2022contriever}, and weakly supervised pairs collected at
+web scale pushed the same recipe further
+\cite{wang2022e5,li2023gte,xiao2023cpack,chen2024bgem3}.  Average
+quality rose across the BEIR suite \cite{thakur2021beir} while that
+weakness stayed exactly in place.  The second line preserved
+finer-grained interaction between query and document terms, which
+buys accuracy at modest cost.  Late interaction keeps one vector per
+token rather than one per document and compares the two sets of
+vectors at search time
+\cite{khattab2020colbert,santhanam2022colbertv2}, and learned sparse
+retrieval scores documents over learned per-term weights rather than
+dense vectors \cite{formal2021splade,formal2022splade}.  Storing a
+vector per token is what makes a late-interaction index large, and
+ColBERTv2 shrinks that index by a factor of 6 to 10
 \cite{santhanam2022colbertv2}.  The cross-encoder stage below pushes
-the same trade to its limit.  The scholarly-specific line pursued
-citation supervision
-\cite{beltagy2019scibert,cohan2020specter,ostendorff2022scincl}, and
-its lesson for this thesis is negative.  The SciRepEval benchmark
+the same trade to its limit.  The third, scholarly-specific line
+built on domain pre-training \cite{beltagy2019scibert} and trained
+embeddings under citation supervision, using citation links as the
+training signal so that papers that cite one another sit close in the
+learned space \cite{cohan2020specter,ostendorff2022scincl}.  Its
+lesson for this thesis is negative.  The SciRepEval benchmark
 \cite{singh2023scirepeval} shows that proximity-trained representations
 transfer poorly to classification and ad-hoc search, with the
 adapter-based SPECTER2 only a few MAP points ahead of a BM25 baseline
@@ -63,18 +71,20 @@ of the cascade.  Nogueira and Cho's BERT passage re-ranker, later
 termed monoBERT \cite{nogueira2019monobert}, established the design by
 reading the query and the document together in one input, so that every
 query term attends to every document term, and monoT5 extended the same
-idea to sequence-to-sequence scoring \cite{nogueira2020monot5}.  Joint
-reading is what late interaction only approximates and what
-single-vector encoders cannot express at all, and it carries a defined
-price.  Every query and document pair requires a fresh forward pass, so
+idea to sequence-to-sequence scoring \cite{nogueira2020monot5}.  This
+joint reading, in which the model scores the query and the document in
+a single forward pass over both, is what late interaction only
+approximates and what single-vector encoders cannot express at all,
+and it carries a defined price.  Every query and document pair
+requires a fresh forward pass, so
 nothing can be precomputed and the model is affordable only over a
 small candidate set.  Pairing a cheap high-recall first stage with an
 expensive cross-encoder over its top candidates is the established
 multi-stage ranking pattern \cite{nogueira2019multistage}, and the two
 semantic stages of this thesis instantiate it, with a bi-encoder
 ranking the structured candidate pool and a cross-encoder re-ranking
-the shortlist it returns.  The research design selects both models by
-benchmark rather than by reputation.
+the shortlist it returns, both models selected by benchmark in the
+research design rather than by reputation.
 
 The size of the gap that remains is established by LitSearch
 \cite{ajith2024litsearch}, a benchmark of 597 literature-search
@@ -145,10 +155,11 @@ constrains nothing in this design.
 Personalized PageRank is the one graph method whose mechanics match the
 retrieval problem, and even it lacks a scholarly-search evaluation.
 Haveliwala's topic-sensitive formulation \cite{haveliwala2002tspr}
-conditions the walk on the query through the teleport vector, so scores
-reflect query-specific relevance rather than generic prominence, and
-the propagation aggregates influence across citation hops that no
-single-vector representation reaches.  Chen et al.\ \cite{chen2007gems}
+biases the walk toward the query: instead of jumping to a random node
+when it teleports, the walker jumps back to nodes drawn from the
+query, so scores reflect relevance to that query rather than generic
+prominence, and the propagation aggregates influence across citation
+hops that no single-vector representation reaches.  Chen et al.\ \cite{chen2007gems}
 use exactly this to surface pivotal but under-cited physics papers.
 The scholarly-search literature between 2020 and 2026 nevertheless
 contains no rigorous combination of PPR with modern dense retrieval
@@ -295,9 +306,9 @@ corpus-independent features \cite{campos2020yake}.  Neural extractors
 such as KeyBERT \cite{grootendorst2020keybert} and the keyphrase-aware
 pre-trained KBIR \cite{kulkarni2022kbir} improve span ranking but
 remain extractive.  Generative models can also produce absent
-keyphrases, with KeyBART \cite{kulkarni2022kbir} the representative
-fine-tuned generator and a prompted general-purpose language model the
-newest member of the family.  Evaluation is by F1 at a small cutoff
+keyphrases.  KeyBART \cite{kulkarni2022kbir} is the representative
+fine-tuned generator, and prompting a general-purpose language model,
+as this thesis does, is the most recent addition to the family.  Evaluation is by F1 at a small cutoff
 against author-assigned gold keyphrases, usually with stemming, and its
 absolute ceiling is low because author keyphrase sets are short,
 subjective, and only partly recoverable from the title and abstract
@@ -308,9 +319,12 @@ OAGKX deriving some 23 million records from the Open Academic Graph
 \cite{cano2020oagkx} and KPBiomed pairing more than five million PubMed
 abstracts with their author keyphrases \cite{houbre2022kpbiomed},
 alongside PubMedAKE over the same source \cite{sheng2022pubmedake}.
-What agreement with authors does not measure is the retrieval the index
-exists to serve, and the closest result is Boudin et al.\
-\cite{boudin2020kpretrieval}, who show that appending generated
-keyphrases to documents improves scientific ad-hoc retrieval.  That gap
-between agreement and retrieval recurs later as a limitation of this
-thesis's own component evaluation.
+Agreement with authors, however, does not measure whether an index
+built from the keyphrases retrieves papers well, which is the purpose
+the index exists to serve.  The closest result on that question is
+Boudin et al.\ \cite{boudin2020kpretrieval}, who show that appending
+generated keyphrases to documents improves scientific ad-hoc
+retrieval.  This thesis's own keyword evaluation inherits the same
+limit, in that it scores agreement with reference keyphrases rather
+than the retrieval built on them, and the limitations analysis returns
+to this point.

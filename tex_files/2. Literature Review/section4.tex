@@ -52,7 +52,9 @@ et al.'s literature graph~\cite{ammar2018construction}),
 OAG~\cite{zhang2019oag,zhang2024oagbench}, and AceKG~\cite{wang2018acekg}.
 ORKG~\cite{jaradeh2019orkg} offers curated semantic depth, and
 OpenCitations~\cite{peroni2020opencitations,heibi2019coci,massari2024ocmeta,heibi2024ocindex}
-models citations as first-class resources.  Table~\ref{tab:kg-infra} carries
+publishes each citation link as its own addressable record with its
+own identifier and metadata, rather than as a field on the citing
+paper.  Table~\ref{tab:kg-infra} carries
 the per-system detail on coverage, schema, query interface, embeddings, and
 licence.
 
@@ -70,14 +72,24 @@ than consuming any of these systems as-is.
 \subsubsection{Traditional scholarly search engines}
 \label{subsec:traditional-search}
 
-Today's deployed search engines practise text-centric and citation-graph
-retrieval separately, and no widely-used system seriously combines them under
-a single ranking regime. Text-centric engines dominate daily use. Google
+Today's deployed search engines practise structured, text-centric, and
+citation-graph retrieval separately, and no widely-used system seriously
+combines them under a single ranking regime. Text-centric engines dominate daily use. Google
 Scholar is the largest by record count, with roughly 389\,M
 records~\cite{gusenbauer2019gs} and the highest citation coverage in independent
 comparison~\cite{martinmartin2021coverage}, but its 1{,}000-result cap, weak
 Boolean support and opaque ranking rule it out as a systematic-review
-engine~\cite{gusenbauerhaddaway2020}. Among major open-access alternatives at
+engine~\cite{gusenbauerhaddaway2020}.
+% Comparator pass (July 2026): PubMed added because it is now an RQ3
+% comparator (see research_design III-D6). Optional: cross-reference the
+% II-A history subsection at the MEDLARS mention if its label is handy.
+PubMed is the structured engine in the same daily-use tier. It descends from
+MEDLARS and keeps that design, offering field-tagged Boolean search over
+typed metadata and the MeSH controlled vocabulary, and the same comparison
+that rules Google Scholar out rates PubMed as suitable for systematic
+reviews~\cite{gusenbauerhaddaway2020}. Its coverage is confined to
+biomedicine, and its matching is lexical, so a relevant paper worded
+differently from the query can be missed. Among major open-access alternatives at
 100\,M+-document scale, Dimensions~\cite{herzog2020dimensions},
 Lens~\cite{jefferson2018lens} and OpenAlex-native
 search~\cite{priem2022openalex} offer Boolean keyword search with faceted
