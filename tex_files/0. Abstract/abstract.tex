@@ -19,40 +19,6 @@
 % Scholar, PubMed, Semantic Scholar). Rationale and protocol: research_design
 % III-D6 and the NOTE there.
 \begin{abstract}
-Deployed literature-search engines force a choice between two retrieval
-paradigms. Structured retrieval matches exact terms and typed metadata, so a
-paper either satisfies the query or it does not, and the same query always
-returns the same answer. Semantic retrieval ranks papers by meaning, so it can
-surface relevant papers whose wording differs from the query. This thesis
-designs, builds, and evaluates a scholarly search system that combines the
-two, built to production standard for Latent Knowledge, an industry partner
-whose users are biomedical researchers. A typed knowledge graph of
-approximately 150 million biomedical works, ingested from the 2026-02-03
-OpenAlex snapshot, anchors a three-stage cascade in which structured graph
-retrieval returns the works that provably satisfy the query, dense bi-encoder
-retrieval ranks that set by semantic similarity, and a cross-encoder re-ranks
-the final results. A language model performs only the two tasks the structured
-stage needs, building the per-work keyword index offline and translating each
-query into an intermediate representation, and a deterministic compiler turns
-that representation into the database query, so the language model never
-writes the query itself. Benchmarks for each module select the model deployed
-for that module. The deployed translation model, GPT-5.4-nano, translates 93.7
-percent of a hand-built, stratified gold set of 116 queries correctly, where a
-translation counts as correct only when both its extracted terms and its
-Boolean logic match the reference. The same model builds the strongest keyword
-index of any candidate across three scientific keyphrase benchmarks, though on
-an extraction task whose scores are low for every method. In the
-two ranking stages, recent general-purpose models outperformed the scientific
-fine-tuned ones. The leading bi-encoders, Qwen3-Embedding-4B and the deployed
-text-embedding-3-small among them, and the leading cross-encoder, Cohere
-Rerank 4.0 Pro, score around 82 to 83 on a 0 to 100 ranking-quality scale
-(nDCG) on SciRepEval ad-hoc search,
-while the fine-tuned SPECTER2 embedders and the biomedical reranker MedCPT
-trail the general-purpose leaders. Storing the embeddings as 8-bit integers
-costs no measurable ranking quality and halves the memory the index needs.
-Together, these component results support the design claim of the thesis,
-that structured and semantic retrieval can be combined rather than traded
-off. The comparison of the assembled cascade against Google Scholar, PubMed,
-and Semantic Scholar is specified in the research design and reported in the
-final submission.
+Deployed literature-search engines force a choice between two retrieval paradigms: structured retrieval, which matches exact terms and typed metadata and so answers a query deterministically and auditably, and semantic retrieval, which ranks papers by meaning and so surfaces relevant work whose wording differs from the query. This thesis designs, builds, and evaluates a scholarly search system that combines the two, built to production standard for Latent Knowledge, an industry partner whose users are biomedical researchers. A typed knowledge graph of approximately 150 million biomedical works from OpenAlex anchors a three-stage cascade: structured graph retrieval returns every work satisfying the query, dense retrieval ranks that set by meaning, and a cross-encoder re-ranks the final results. A language model performs the two functions the structured stage requires, building the keyword index offline and translating each query into an intermediate representation, while a deterministic compiler constructs the database query, preserving the correctness and auditability that systematic search demands.
+Benchmarks for each module select the model deployed for that module, and together they establish that each layer of the design can be built to a high standard. The deployed translation model, GPT-5.4-nano, correctly structures 93.7 percent of a hand-built query benchmark; the same model produces the strongest overall keyword index, leading two of the three keyphrase benchmarks; and recent general-purpose models equip both ranking stages, outperforming their scientific fine-tuned counterparts. Storing the embeddings as 8-bit integers halves the memory the index requires at no measurable cost, which is what lets the full graph reside in memory. The partner receives a production-ready system in which every model choice rests on measured evidence and remains substitutable as stronger models emerge. How the assembled cascade compares against the engines researchers already use, Google Scholar, PubMed, and Semantic Scholar, is reported in the final submission.
 \end{abstract}

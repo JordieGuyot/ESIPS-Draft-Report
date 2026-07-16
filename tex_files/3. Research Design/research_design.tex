@@ -449,3 +449,18 @@ The engines are live services over corpora that differ from the cascade's pinned
 % if preferred: give PubMed a faithful hand translation into its field-tagged
 % syntax (its expert-use mode) alongside or instead of the verbatim string,
 % and state whichever is run.
+
+\subsection{Artefact Availability}
+The production codebase, including the ingestion pipeline and retrieval
+service, is proprietary to Latent Knowledge and is not published. The
+artefacts required to reproduce the component benchmarks of
+Section~\ref{subsec:evaluation-validation} are openly available in the project's
+\href{https://github.com/Latent-Knowledge-Developers/LitView_search_eval}{evaluation
+repository},\footnote{\url{https://github.com/Latent-Knowledge-Developers/LitView_search_eval},
+release \texttt{v1.0}, accessed 16 July 2026.} comprising the 116-query
+gold set with its reference intermediate representations, the
+system-level query set, the keyword and IR-extraction prompts with the
+IR schema, and the adapted SciRepEval harness with per-model
+configurations. The repository is cited at the specific tagged release
+evaluated, in line with the version-pinning practice of
+Section~\ref{subsec:kg-infrastructure}.

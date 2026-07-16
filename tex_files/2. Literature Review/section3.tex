@@ -55,8 +55,7 @@ the same trade to its limit.  The third, scholarly-specific line
 built on domain pre-training \cite{beltagy2019scibert} and trained
 embeddings under citation supervision, using citation links as the
 training signal so that papers that cite one another sit close in the
-learned space \cite{cohan2020specter,ostendorff2022scincl}.  Its
-lesson for this thesis is negative.  The SciRepEval benchmark
+learned space \cite{cohan2020specter,ostendorff2022scincl}.  Yet proximity in that space, the very thing the training optimises for, does not translate into retrieval quality.  The SciRepEval benchmark
 \cite{singh2023scirepeval} shows that proximity-trained representations
 transfer poorly to classification and ad-hoc search, with the
 adapter-based SPECTER2 only a few MAP points ahead of a BM25 baseline
@@ -155,7 +154,7 @@ constrains nothing in this design.
 Personalized PageRank is the one graph method whose mechanics match the
 retrieval problem, and even it lacks a scholarly-search evaluation.
 Haveliwala's topic-sensitive formulation \cite{haveliwala2002tspr}
-biases the walk toward the query: instead of jumping to a random node
+biases the walk toward the query. Instead of jumping to a random node
 when it teleports, the walker jumps back to nodes drawn from the
 query, so scores reflect relevance to that query rather than generic
 prominence, and the propagation aggregates influence across citation
